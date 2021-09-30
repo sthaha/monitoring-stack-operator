@@ -1,0 +1,17 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  annotations:
+  name: monitoring-operators
+  namespace: openshift-marketplace
+spec:
+  displayName: Monitoring Test Operator
+  icon:
+    base64data: ""
+    mediatype: ""
+  image: quay.io/sthaha/monitoring-operator-stack-catalog:v0.0.1
+  publisher: Sunil Thaha
+  sourceType: grpc
+  updateStrategy:
+    registryPoll:
+      interval: 15m0s
