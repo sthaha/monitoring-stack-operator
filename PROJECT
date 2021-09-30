@@ -4,6 +4,6 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: memcached-operator
+projectName: monitoring-operator-stack
 repo: github.com/rhobs/monitoring-stack-operator
 version: "3"
