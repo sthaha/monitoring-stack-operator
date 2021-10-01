@@ -9,17 +9,36 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     environment: quay
 
     steps:
-
+      # setup
       - uses: actions/checkout@v2
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.4
         with:
           go-version: 1.16
+
+      - name: Branch name
+        id: branch_name
+        run: |
+          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
+          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
+          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
+          echo ::set-output name=PREVIOUS_TAG::$(git describe)
+
+      - name: Build base image
+        run: |
+          echo "name:   $SOURCE_NAME"
+          echo "branch: $SOURCE_BRANCH"
+          echo "tag:    $SOURCE_TAG"
+        env:
+          SOURCE_NAME: ${{ steps.branch_name.outputs.SOURCE_NAME }}
+          SOURCE_BRANCH: ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
+          SOURCE_TAG: ${{ steps.branch_name.outputs.SOURCE_TAG }}
+          PREVIOUS_TAG: ${{ steps.branch_name.outputs.PREVIOUS_TAG }}
+
 
       - name: Build
         run: make build
@@ -28,6 +47,12 @@ jobs:
 
       - name: Build Operator Image
         run: make docker-build IMG=quay.io/sthaha/monitoring-stack-operator:v0.0.1
+
+      - name: Create Bundle
+        run: make bundle-build
+
+      - name: Build catalog image
+        run: make catalog-build
 
       - name: Docker Login
         # You may pin to the exact commit or the version.
@@ -43,3 +68,9 @@ jobs:
 
       - name: Publish Operator
         run: make docker-push IMG=quay.io/sthaha/monitoring-stack-operator:v0.0.1
+
+      - name: Publish Bundle
+        run: make bundle-push
+
+      - name: Publish catalog image
+        run: make catalog-push
