@@ -36,7 +36,7 @@ IMAGE_TAG_BASE ?= quay.io/sthaha/monitoring-operator-stack
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(VERSION)
 
 # Image URL to use all building/pushing image targets
-IMG ?= ($IMAGE_TAG_BASE):$(VERSION)
+IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -146,12 +146,29 @@ rm -rf $$TMP_DIR ;\
 }
 endef
 
+.PHONY: operator-sdk
+OPERATOR_SDK = ./bin/operator-sdk
+operator-sdk:
+ifeq (,$(wildcard $(OPERATOR_SDK)))
+ifeq (,$(shell which operator-sdk 2>/dev/null))
+	@{ \
+	set -ex ;\
+	mkdir -p $(dir $(OPERATOR_SDK)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/v1.13.0/operator-sdk_$${OS}_$${ARCH} ;\
+	chmod +x $(OPERATOR_SDK) ;\
+	}
+else
+OPERATOR_SDK = $(shell which operator-sdk)
+endif
+endif
+
 .PHONY: bundle
-bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q
+bundle: operator-sdk manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
+	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
-	operator-sdk bundle validate ./bundle
+	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.

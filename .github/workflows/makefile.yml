@@ -17,29 +17,6 @@ jobs:
       # setup
       - uses: actions/checkout@v2
 
-
-      - name: Branch name
-        id: branch_name
-        run: |
-          echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
-          echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
-          echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
-          echo ::set-output name=PREVIOUS_TAG::$(git describe)
-
-      - name: Debug branch names and tags
-        run: |
-          echo "name:      $SOURCE_NAME"
-          echo "branch:    $SOURCE_BRANCH"
-          echo "tag:       $SOURCE_TAG"
-          echo "previous:  $PREVIOUS_TAG"
-        env:
-          SOURCE_NAME: ${{ steps.branch_name.outputs.SOURCE_NAME }}
-          SOURCE_BRANCH: ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
-          SOURCE_TAG: ${{ steps.branch_name.outputs.SOURCE_TAG }}
-          PREVIOUS_TAG: ${{ steps.branch_name.outputs.PREVIOUS_TAG }}
-
-
-
       - name: Add to envs envs
         run: |
           cat $GITHUB_ENV
@@ -51,60 +28,71 @@ jobs:
           SOURCE_TAG=${GITHUB_REF#refs/tags/}
 
           if [[ $SOURCE_NAME == master ]]; then
-            VERSION=nightly
+            VERSION="0.0.1-$(date +%y%m%d%H%M%S)"
+            CHANNEL=nightly
           else
             VERSION=$SOURCE_NAME
-            PREVIOUS_VERSION=$(git describe --abbrev=0 ${VERSION}^)
+            CHANNEL=stable
           fi
 
+          IMG_BASE=$(grep '^IMAGE_TAG_BASE' -- Makefile | cut -f3 -d ' ')
+
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "PREVIOUS_VERSION=$PREVIOUS_VERSION" >> $GITHUB_ENV
+          echo "CHANNEL=$CHANNEL" >> $GITHUB_ENV
+          echo "IMG=${IMG_BASE}:$VERSION" >> $GITHUB_ENV
+          echo "BUNDLE_IMG=${IMG_BASE}-bundle:$VERSION" >> $GITHUB_ENV
+          echo "CATALOG_IMG=${IMG_BASE}-catalog:latest" >> $GITHUB_ENV
+          echo "CATALOG_BASE_IMG=${IMG_BASE}-catalog:latest" >> $GITHUB_ENV
           echo ---------------------------
           cat $GITHUB_ENV
           echo ---------------------------
 
-      - name: Show envs
+      - name: Show env vars
         run: |
           cat $GITHUB_ENV
           echo "version: $VERSION"
-          echo "previous: $PREVIOUS_VERSION"
-          exit 1
+          echo "channel: $CHANNEL"
+          env | grep CAT
+          exit 0
 
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.4
         with:
           go-version: 1.16
+
       - name: Build
         run: make build
       - name: Test
         run: make test
 
-      - name: Build Operator Image
-        run: make docker-build IMG=quay.io/sthaha/monitoring-stack-operator:v0.0.1
-
-      - name: Create Bundle
-        run: make bundle-build
-
-      - name: Build catalog image
-        run: make catalog-build
-
-      - name: Docker Login
-        # You may pin to the exact commit or the version.
-        # uses: docker/login-action@v1.10.0
+      - name: Registry Login
+        # You may pin to the exact commit or the version. uses: docker/login-action@v1.10.0
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
-          # Server address of Docker registry. If not set then will default to Docker Hub
           registry: quay.io
-          # Username used to log against the Docker registry
           username: ${{ secrets.QUAY_LOGIN }}
-          # Password or personal access token used to log against the Docker registry
           password: ${{ secrets.QUAY_TOKEN }}
 
+      - name: Build Operator Image
+        run: make docker-build
+
+      - name: Bundle
+        run: make bundle
+
+      - name: Build Bundle Image
+        run: make bundle-build
+
       - name: Publish Operator
-        run: make docker-push IMG=quay.io/sthaha/monitoring-stack-operator:v0.0.1
+        run: make docker-push
 
       - name: Publish Bundle
         run: make bundle-push
+
+
+      - name: Build Catalog Image
+        run: |
+          env | grep CAT
+          make catalog-build
 
       - name: Publish catalog image
         run: make catalog-push

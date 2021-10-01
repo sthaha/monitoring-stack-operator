@@ -1,0 +1,8 @@
+
+RELEASE=rel
+VERSION=version
+CHANNEL=nightly
+IMG=quay.io/sthaha/monitoring-operator-stack:version
+BUNDLE_IMG=quay.io/sthaha/monitoring-operator-stack-bundle:version
+CATALOG_IMG=quay.io/sthaha/monitoring-operator-stack-catalog:latest
+CATALOG_BASE_IMG=quay.io/sthaha/monitoring-operator-stack-catalog:latest
