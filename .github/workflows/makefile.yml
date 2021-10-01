@@ -16,24 +16,23 @@ jobs:
     steps:
       # setup
       - uses: actions/checkout@v2
-      - name: Setup Go environment
-        uses: actions/setup-go@v2.1.4
-        with:
-          go-version: 1.16
+
 
       - name: Branch name
         id: branch_name
         run: |
+          echo $GITHUB_REF
           echo ::set-output name=SOURCE_NAME::${GITHUB_REF#refs/*/}
           echo ::set-output name=SOURCE_BRANCH::${GITHUB_REF#refs/heads/}
           echo ::set-output name=SOURCE_TAG::${GITHUB_REF#refs/tags/}
           echo ::set-output name=PREVIOUS_TAG::$(git describe)
 
-      - name: Build base image
+      - name: Debug branch names and tags
         run: |
-          echo "name:   $SOURCE_NAME"
-          echo "branch: $SOURCE_BRANCH"
-          echo "tag:    $SOURCE_TAG"
+          echo "name:      $SOURCE_NAME"
+          echo "branch:    $SOURCE_BRANCH"
+          echo "tag:       $SOURCE_TAG"
+          echo "previous:  $PREVIOUS_TAG"
         env:
           SOURCE_NAME: ${{ steps.branch_name.outputs.SOURCE_NAME }}
           SOURCE_BRANCH: ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
@@ -41,6 +40,29 @@ jobs:
           PREVIOUS_TAG: ${{ steps.branch_name.outputs.PREVIOUS_TAG }}
 
 
+
+      - name: Add to envs envs
+        run: |
+          cat $GITHUB_ENV
+
+          if [[ $SOURCE_BRANCH == $SOURCE_TAG ]]; then
+            $VERSION=nightly
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          cat $GITHUB_ENV
+        env:
+          SOURCE_NAME: ${{ steps.branch_name.outputs.SOURCE_NAME }}
+          SOURCE_BRANCH: ${{ steps.branch_name.outputs.SOURCE_BRANCH }}
+          SOURCE_TAG: ${{ steps.branch_name.outputs.SOURCE_TAG }}
+          PREVIOUS_TAG: ${{ steps.branch_name.outputs.PREVIOUS_TAG }}
+      - name: Show envs
+        run: cat $GITHUB_ENV; exit 1
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v2.1.4
+        with:
+          go-version: 1.16
       - name: Build
         run: make build
       - name: Test
