@@ -51,10 +51,10 @@ jobs:
           SOURCE_TAG=${GITHUB_REF#refs/tags/}
 
           if [[ $SOURCE_NAME == master ]]; then
-            $VERSION=nightly
+            VERSION=nightly
           else
-            $VERSION=$SOURCE_NAME
-            $PREVIOUS_VERSION=$(git describe --abbrev=0 ${VERSION}^)
+            VERSION=$SOURCE_NAME
+            PREVIOUS_VERSION=$(git describe --abbrev=0 ${VERSION}^)
           fi
 
           echo "VERSION=$VERSION" >> $GITHUB_ENV
