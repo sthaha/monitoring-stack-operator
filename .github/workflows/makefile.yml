@@ -4,10 +4,9 @@ name: Build and Publish
 on:
   push:
     branches: [master]
+    tags: ["v*"]
   pull_request:
     branches: [master]
-  tags:
-    - "v*"
 
 jobs:
   build:
