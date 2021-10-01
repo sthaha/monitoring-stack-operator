@@ -25,7 +25,7 @@ jobs:
     #  run: make test
     
     - name: access name
-      run: echo ${{ secrets.quay_login }} use dot ${{ secrets.quay.login }}
+      run: echo ${{ secrets.QUAY_LOGIN }}
  
 #     - name: Build Operator
 #       run: make docker-build IMG=quay.io/sthaha/monitoring-stack-operator:v0.0.1
