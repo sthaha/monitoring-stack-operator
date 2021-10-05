@@ -3,10 +3,10 @@ name: Build and Publish
 
 on:
   push:
-    branches: [master]
+    branches: [auto-release]
     tags: ["v*"]
   pull_request:
-    branches: [master]
+    branches: [auto-release]
 
 jobs:
   build:
@@ -27,7 +27,7 @@ jobs:
           SOURCE_BRANCH=${GITHUB_REF#refs/heads/}
           SOURCE_TAG=${GITHUB_REF#refs/tags/}
 
-          if [[ $SOURCE_NAME == master ]]; then
+          if [[ $SOURCE_NAME == auto-release ]]; then
             VERSION="0.0.1-$(date +%y%m%d%H%M%S)"
             CHANNEL=nightly
           else
