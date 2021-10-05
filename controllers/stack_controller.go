@@ -50,7 +50,7 @@ func (r *StackReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	logger := log.FromContext(ctx)
 
 	// your logic here
-	logger.Info("%v", req)
+	logger.Info("reconcile", "req", req)
 
 	return ctrl.Result{}, nil
 }
