@@ -9,7 +9,7 @@ spec:
   icon:
     base64data: ""
     mediatype: ""
-  image: quay.io/sthaha/monitoring-operator-stack-catalog:v0.0.1
+  image: quay.io/sthaha/monitoring-operator-stack-catalog:latest
   publisher: Sunil Thaha
   sourceType: grpc
   updateStrategy:
