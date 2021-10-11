@@ -2,7 +2,7 @@
 name: Build Operator Bundle
 
 on:
-  pull_requests:
+  pull_request:
     branches: [auto-release]
 
 jobs:
