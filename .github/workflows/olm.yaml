@@ -25,7 +25,7 @@ jobs:
           SOURCE_BRANCH=${GITHUB_REF#refs/heads/}
           SOURCE_TAG=${GITHUB_REF#refs/tags/}
 
-          if [[ $SOURCE_NAME == main ]]; then
+          if [[ $SOURCE_NAME == auto-release ]]; then
             VERSION="$(cat VERSION)-$(date +%y%m%d%H%M%S)"
             CHANNELS=candidate
           else
