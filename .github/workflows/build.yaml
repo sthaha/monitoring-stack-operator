@@ -1,13 +1,12 @@
 ---
-name: OLM Release
+name: Build Operator Bundle
 
 on:
-  push:
+  pull_requests:
     branches: [auto-release]
-    tags: ["v*"]
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     environment: quay
 
@@ -21,17 +20,8 @@ jobs:
 
           echo "GITHUB_REF: $GITHUB_REF"
 
-          SOURCE_NAME=${GITHUB_REF#refs/*/}
-          SOURCE_BRANCH=${GITHUB_REF#refs/heads/}
-          SOURCE_TAG=${GITHUB_REF#refs/tags/}
-
-          if [[ $SOURCE_NAME == main ]]; then
-            VERSION="$(cat VERSION)-$(date +%y%m%d%H%M%S)"
-            CHANNELS=candidate
-          else
-            VERSION=${SOURCE_NAME##v}
-            CHANNELS=candidate,stable
-          fi
+          VERSION="$(cat VERSION)-$(date +%y%m%d%H%M%S)"
+          CHANNELS=test
 
           IMG_BASE=$(grep '^IMAGE_TAG_BASE' -- Makefile | cut -f3 -d ' ')
 
@@ -49,30 +39,14 @@ jobs:
         with:
           go-version: 1.16
 
-      - name: Registry Login
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_LOGIN }}
-          password: ${{ secrets.QUAY_TOKEN }}
+      - name: Build Operator
+        run: make operator
 
       - name: Build Operator Image
         run: make operator-image
 
-      - name: Publish Operator
-        run: make operator-push
+      - name: Build Bundle
+        run: make bundle
 
       - name: Build Bundle Image
         run: make bundle-image
-
-      - name: Publish Bundle
-        run: make bundle-push
-
-
-      - name: Build Catalog Image
-        run: |
-          env | grep CAT
-          make catalog-image
-
-      - name: Publish catalog image
-        run: make catalog-push
