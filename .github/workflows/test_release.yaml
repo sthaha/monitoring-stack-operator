@@ -4,8 +4,6 @@ on:
 
 env:
   golang-version: '1.16'
-  kind-version: 'v0.11.1'
-  kind-image: 'kindest/node:v1.22.0'
 
 jobs:
   commit-lint:
@@ -58,27 +56,8 @@ jobs:
   e2e-tests:
     name: E2E tests
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.golang-version }}
-      - name: Build images
-        run: |
-          make operator-image
-      - name: Start KinD
-        uses: engineerd/setup-kind@v0.5.0
-        with:
-          version: ${{ env.kind-version }}
-          image: ${{ env.kind-image }}
-          wait: 300s
-      - name: Wait for cluster to finish bootstraping
-        run: |
-          kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
-          kubectl cluster-info
-          kubectl get pods -A
-      - name: Load images
-        run: |
-          kind load docker-image monitoring-stack-operator:$(cat VERSION)
-      - name: Run tests
-        run: go test ./test/e2e/...
+    uses: ./.github/e2e-tests
+    with:
+        go-version: ${{ env.golang-version }}
+      kind-version: ${{ env.kind-version }}
+      kind-image: ${{ env.kind-image }}

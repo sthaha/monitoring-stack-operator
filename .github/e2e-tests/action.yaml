@@ -1,0 +1,36 @@
+name: e2e-tests
+description: Runs E2E tests
+inputs:
+  go-version:
+    description: "go version"
+    required: false
+    default: 1.16
+env:
+  kind-version: 'v0.11.1'
+  kind-image: 'kindest/node:v1.22.0'
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+      with:
+        go-version: ${{ inputs.go-version }}
+    - name: Build images
+      run: |
+        make operator-image
+    - name: Start KinD
+      uses: engineerd/setup-kind@v0.5.0
+      with:
+        version: ${{ env.kind-version }}
+        image: ${{ env.kind-image }}
+        wait: 300s
+    - name: Wait for cluster to finish bootstraping
+      run: |
+        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
+        kubectl cluster-info
+        kubectl get pods -A
+    - name: Load images
+      run: |
+        kind load docker-image monitoring-stack-operator:$(cat VERSION)
+    - name: Run tests
+      run: go test ./test/e2e/...
