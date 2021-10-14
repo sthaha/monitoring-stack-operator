@@ -9,6 +9,7 @@ env:
   kind-version: 'v0.11.1'
   kind-image: 'kindest/node:v1.22.0'
 
+runs-on:
 runs:
   using: composite
   steps:
@@ -17,8 +18,8 @@ runs:
         go-version: 1.16
 
     - name: Build images
-      run: |
-        make operator-image
+      run: make operator-image
+      shell: bash
 
     - name: Start KinD
       uses: engineerd/setup-kind@v0.5.0
@@ -28,14 +29,17 @@ runs:
         wait: 300s
 
     - name: Wait for cluster to finish bootstraping
+      shell: bash
       run: |
         kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
         kubectl cluster-info
         kubectl get pods -A
 
     - name: Load images
+      shell: bash
       run: |
         kind load docker-image monitoring-stack-operator:$(cat VERSION)
 
     - name: Run tests
+      shell: bash
       run: go test ./test/e2e/...
