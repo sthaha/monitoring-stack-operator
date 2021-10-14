@@ -16,6 +16,13 @@ All notable changes to this project will be documented in this file. See [standa
 
 * parametrize the namespace of the prometheus operator ([5210561](https://github.com/rhobs/monitoring-stack-operator/commit/5210561f812b88c8eba1089f568d5908dc3e9cf9))
 
+### [0.0.3](https://github.com/rhobs/monitoring-stack-operator/commit/) (2021-10-14)
+
+
+### Bug Fixes
+
+* parametrize the namespace of the prometheus operator ([5210561](https://github.com/rhobs/monitoring-stack-operator/commit/5210561f812b88c8eba1089f568d5908dc3e9cf9))
+
 ### [0.0.2](https://github.com/rhobs/monitoring-stack-operator/commit/) (2021-10-13)
 
 
