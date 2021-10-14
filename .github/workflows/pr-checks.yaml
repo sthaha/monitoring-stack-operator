@@ -54,6 +54,7 @@ jobs:
         run: make bundle-image
 
   e2e-tests:
+    runs-on: ubuntu-latest
     steps:
       - name: e2e tests
         uses: ./.github/e2e-tests
