@@ -1,40 +1,20 @@
 name: release
+description: Decide between Pre-Release and Development Release
 on:
   push:
     branches: [main]
 env:
   golang-version: '1.16'
-  kind-version: 'v0.11.1'
-  kind-image: 'kindest/node:v1.22.0'
 
 jobs:
   e2e-tests:
-    name: E2E tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - name: e2e tests
+        uses: ./.github/e2e-tests
         with:
-          go-version: ${{ env.golang-version }}
-      - name: Build images
-        run: |
-          make operator-image
-      - name: Start KinD
-        uses: engineerd/setup-kind@v0.5.0
-        with:
-          version: ${{ env.kind-version }}
-          image: ${{ env.kind-image }}
-          wait: 300s
-      - name: Wait for cluster to finish bootstraping
-        run: |
-          kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
-          kubectl cluster-info
-          kubectl get pods -A
-      - name: Load images
-        run: |
-          kind load docker-image monitoring-stack-operator:$(cat VERSION)
-      - name: Run tests
-        run: go test ./test/e2e/...
+          go-version: ${{ env.go-version }}
 
   publish-olm-development:
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
@@ -61,7 +41,7 @@ jobs:
           quay_login: ${{ secrets.QUAY_LOGIN }}
           quay_token: ${{ secrets.QUAY_TOKEN }}
 
-  create-github-release:
+  create-github-prerelease:
     needs:
       - e2e-tests
     runs-on: ubuntu-latest
