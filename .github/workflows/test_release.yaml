@@ -1,9 +1,6 @@
-name: "Test and Release"
+name: ci
 on:
   pull_request:
-  push:
-    branches:
-    - 'main'
 
 env:
   golang-version: '1.16'
@@ -85,67 +82,3 @@ jobs:
           kind load docker-image monitoring-stack-operator:$(cat VERSION)
       - name: Run tests
         run: go test ./test/e2e/...
-
-  publish-olm-development:
-    if: "github.ref == 'refs/heads/main'"
-    runs-on: ubuntu-latest
-    environment: quay
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set version
-        id: version
-        run: |
-          version="$(cat VERSION)-$(date +%y%m%d%H%M%S)"
-          echo "::set-output name=version::$version"
-
-      - name: Publish
-        uses: ./.github/olm-publish
-        env:
-          IMAGE_BASE: ${{ secrets.IMAGE_BASE }}
-          VERSION: ${{ steps.version.outputs.version }}
-          CHANNELS: development
-        with:
-          quay_login: ${{ secrets.QUAY_LOGIN }}
-          quay_token: ${{ secrets.QUAY_TOKEN }}
-
-  create-github-release:
-    needs:
-      - commit-lint
-      - golang-lint
-      - generate
-      - build-bundle-image
-      - e2e-tests
-      - publish-olm-development
-    runs-on: ubuntu-latest
-    if: "github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'chore(release):')"
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.REPOSITORY_PUSH_TOKEN }}
-
-      - name: Generate release notes
-        run: |
-          # Create the release notes for the Github release
-          git config user.name rhobs-release-bot
-          git config user.email release-bot@monitoring.rhobs.io
-          npx standard-version -i RELEASE_BODY.md --release-as $(cat VERSION) --skip.commit
-
-      - name: Publish tag
-        id: publish_tag
-        run: |
-          git push --follow-tags
-          echo ::set-output name=tag_name::$(git describe HEAD --abbrev=0)
-
-      - name: Create Github release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPOSITORY_PUSH_TOKEN }}
-        with:
-          release_name: ${{ steps.publish_tag.outputs.tag_name }}
-          tag_name: ${{ steps.publish_tag.outputs.tag_name }}
-          body_path: RELEASE_BODY.md
-          # We always generate pre-releases and mark them as releases manually
-          prerelease: true

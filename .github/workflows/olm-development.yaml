@@ -1,0 +1,93 @@
+name: release
+on:
+  push:
+    branches: [main]
+jobs:
+  e2e-tests:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.golang-version }}
+      - name: Build images
+        run: |
+          make operator-image
+      - name: Start KinD
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: ${{ env.kind-version }}
+          image: ${{ env.kind-image }}
+          wait: 300s
+      - name: Wait for cluster to finish bootstraping
+        run: |
+          kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
+          kubectl cluster-info
+          kubectl get pods -A
+      - name: Load images
+        run: |
+          kind load docker-image monitoring-stack-operator:$(cat VERSION)
+      - name: Run tests
+        run: go test ./test/e2e/...
+
+  publish-olm-development:
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    runs-on: ubuntu-latest
+    environment: quay
+    needs:
+      - e2e-tests
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set version
+        id: version
+        run: |
+          version="$(cat VERSION)-$(date +%y%m%d%H%M%S)"
+          echo "::set-output name=version::$version"
+
+      - name: Publish
+        uses: ./.github/olm-publish
+        env:
+          IMAGE_BASE: ${{ secrets.IMAGE_BASE }}
+          VERSION: ${{ steps.version.outputs.version }}
+          CHANNELS: development
+        with:
+          quay_login: ${{ secrets.QUAY_LOGIN }}
+          quay_token: ${{ secrets.QUAY_TOKEN }}
+
+  create-github-release:
+    needs:
+      - e2e-tests
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.head_commit.message, 'chore(release):')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.REPOSITORY_PUSH_TOKEN }}
+
+      - name: Generate release notes
+        run: |
+          # Create the release notes for the Github release
+          git config user.name rhobs-release-bot
+          git config user.email release-bot@monitoring.rhobs.io
+          npx standard-version -i RELEASE_BODY.md --release-as $(cat VERSION) --skip.commit
+
+      - name: Publish tag
+        id: publish_tag
+        run: |
+          git push --follow-tags
+          echo ::set-output name=tag_name::$(git describe HEAD --abbrev=0)
+
+      - name: Create Github release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPOSITORY_PUSH_TOKEN }}
+        with:
+          release_name: ${{ steps.publish_tag.outputs.tag_name }}
+          tag_name: ${{ steps.publish_tag.outputs.tag_name }}
+          body_path: RELEASE_BODY.md
+          # We always generate pre-releases and mark them as releases manually
+          prerelease: true
