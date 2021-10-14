@@ -1,5 +1,5 @@
+# Decide between Pre-Release and Development Release
 name: release
-description: Decide between Pre-Release and Development Release
 on:
   push:
     branches: [main]
