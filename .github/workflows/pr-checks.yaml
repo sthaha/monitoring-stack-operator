@@ -1,4 +1,4 @@
-name: ci
+name: pr checks
 on:
   pull_request:
 
@@ -53,9 +53,8 @@ jobs:
       - name: Build Bundle Image
         run: make bundle-image
 
-        # e2e-tests:
-        #   name: E2E tests
-        #   runs-on: ubuntu-latest
-        #   uses: ./.github/e2e-tests
-        #   with:
-        #     go-version: ${{ env.go-version }}
+  e2e-tests:
+    name: E2E tests
+    uses: ./.github/e2e-tests
+    with:
+      go-version: ${{ env.go-version }}
