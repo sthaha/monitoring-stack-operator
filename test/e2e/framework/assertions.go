@@ -15,8 +15,35 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+type AssertOption struct {
+	PollInterval time.Duration
+	WaitTimeout  time.Duration
+}
+
+type OptionFn func(*AssertOption)
+
+func WithTimeout(d time.Duration) OptionFn {
+	return func(o *AssertOption) {
+		o.WaitTimeout = d
+	}
+}
+
+func WithPollInterval(d time.Duration) OptionFn {
+	return func(o *AssertOption) {
+		o.PollInterval = d
+	}
+}
+
 // AssertResourceNeverExists asserts that a statefulset is never created for the duration of wait.ForeverTestTimeout
-func (f *Framework) AssertResourceNeverExists(name string, namespace string, resource client.Object) func(t *testing.T) {
+func (f *Framework) AssertResourceNeverExists(name, namespace string, resource client.Object, fns ...OptionFn) func(t *testing.T) {
+	option := AssertOption{
+		PollInterval: 5 * time.Second,
+		WaitTimeout:  wait.ForeverTestTimeout,
+	}
+	for _, fn := range fns {
+		fn(&option)
+	}
+
 	return func(t *testing.T) {
 		if err := wait.Poll(5*time.Second, wait.ForeverTestTimeout, func() (done bool, err error) {
 			key := types.NamespacedName{
@@ -35,9 +62,17 @@ func (f *Framework) AssertResourceNeverExists(name string, namespace string, res
 }
 
 // AssertResourceEventuallyExists asserts that a statefulset is created duration a time period of wait.ForeverTestTimeout
-func (f *Framework) AssertResourceEventuallyExists(name string, namespace string, resource client.Object) func(t *testing.T) {
+func (f *Framework) AssertResourceEventuallyExists(name, namespace string, resource client.Object, fns ...OptionFn) func(t *testing.T) {
+	option := AssertOption{
+		PollInterval: 5 * time.Second,
+		WaitTimeout:  wait.ForeverTestTimeout,
+	}
+	for _, fn := range fns {
+		fn(&option)
+	}
+
 	return func(t *testing.T) {
-		if err := wait.Poll(5*time.Second, wait.ForeverTestTimeout, func() (done bool, err error) {
+		if err := wait.Poll(option.PollInterval, option.WaitTimeout, func() (done bool, err error) {
 			key := types.NamespacedName{
 				Name:      name,
 				Namespace: namespace,

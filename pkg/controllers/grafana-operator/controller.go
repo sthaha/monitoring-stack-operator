@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	networkingv1 "k8s.io/api/networking/v1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	integreatlyv1alpha1 "github.com/grafana-operator/grafana-operator/v4/api/integreatly/v1alpha1"
 	v1 "k8s.io/api/apps/v1"
@@ -46,7 +47,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/go-logr/logr"
@@ -68,13 +69,20 @@ type reconciler struct {
 	grafanaClientset rest.Interface
 }
 
+type reconcileResult struct {
+	ctrl.Result
+	err  error
+	stop bool
+}
+
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=list;watch,resourceNames=monitoring-stack-operator
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=create
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=subscriptions;operatorgroups,verbs=list;watch;create;update,namespace=monitoring-stack-operator
 //+kubebuilder:rbac:groups=integreatly.org,namespace=monitoring-stack-operator,resources=grafanas,verbs=list;watch;create;update
+//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
 // RegisterWithManager registers the controller with Manager
-func RegisterWithManager(mgr controllerruntime.Manager) error {
+func RegisterWithManager(mgr ctrl.Manager) error {
 	olmClientset, err := versioned.NewForConfig(mgr.GetConfig())
 	if err != nil {
 		return fmt.Errorf("could not create new OLM clientset: %w", err)
@@ -91,7 +99,7 @@ func RegisterWithManager(mgr controllerruntime.Manager) error {
 		return fmt.Errorf("could not create new Grafana clientset: %w", err)
 	}
 
-	logger := controllerruntime.Log.WithName("grafana-operator")
+	logger := ctrl.Log.WithName("grafana-operator")
 	r := &reconciler{
 		k8sClient:        mgr.GetClient(),
 		scheme:           mgr.GetScheme(),
@@ -101,7 +109,7 @@ func RegisterWithManager(mgr controllerruntime.Manager) error {
 		grafanaClientset: grafanaClientset,
 	}
 
-	ctrl, err := controller.New("grafana-operator", mgr, controller.Options{
+	c, err := controller.New("grafana-operator", mgr, controller.Options{
 		MaxConcurrentReconciles: 1,
 		Reconciler:              r,
 		Log:                     logger,
@@ -112,13 +120,13 @@ func RegisterWithManager(mgr controllerruntime.Manager) error {
 
 	ticker := eventsource.NewTickerSource(30 * time.Minute)
 	go ticker.Run()
-	if err := ctrl.Watch(ticker, &handler.EnqueueRequestForObject{}); err != nil {
+	if err := c.Watch(ticker, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
 
 	namespaceInformer := r.namespaceInformer()
 	go namespaceInformer.Run(nil)
-	if err := ctrl.Watch(&source.Informer{
+	if err := c.Watch(&source.Informer{
 		Informer: namespaceInformer,
 	}, &handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{}); err != nil {
 		return err
@@ -126,7 +134,7 @@ func RegisterWithManager(mgr controllerruntime.Manager) error {
 
 	operatorGroupInformer := r.operatorGroupInformer()
 	go operatorGroupInformer.Run(nil)
-	if err := ctrl.Watch(&source.Informer{
+	if err := c.Watch(&source.Informer{
 		Informer: operatorGroupInformer,
 	}, &handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{}); err != nil {
 		return err
@@ -134,7 +142,7 @@ func RegisterWithManager(mgr controllerruntime.Manager) error {
 
 	subscriptionInformer := r.subscriptionInformer()
 	go subscriptionInformer.Run(nil)
-	if err := ctrl.Watch(&source.Informer{
+	if err := c.Watch(&source.Informer{
 		Informer: subscriptionInformer,
 	}, &handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{}); err != nil {
 		return err
@@ -142,7 +150,7 @@ func RegisterWithManager(mgr controllerruntime.Manager) error {
 
 	grafanaInformer := r.grafanaInformer()
 	go grafanaInformer.Run(nil)
-	if err := ctrl.Watch(&source.Informer{
+	if err := c.Watch(&source.Informer{
 		Informer: grafanaInformer,
 	}, &handler.EnqueueRequestForObject{}, predicate.GenerationChangedPredicate{}); err != nil {
 		return err
@@ -151,108 +159,177 @@ func RegisterWithManager(mgr controllerruntime.Manager) error {
 	return nil
 }
 
-func (r *reconciler) Reconcile(ctx context.Context, _ controllerruntime.Request) (controllerruntime.Result, error) {
-	r.logger.V(10).Info("Reconciling Grafana Operator Namespace")
-	if err := r.reconcileNamespace(ctx); err != nil {
-		return controllerruntime.Result{}, err
+func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := r.logger.WithValues("req", req)
+
+	result := func(r reconcileResult) (ctrl.Result, error) {
+
+		if r.err != nil {
+			logger.Error(r.err, "End Reconcile - creation or updation error")
+		} else {
+			logger.Info("End Reconcile - requeue after", "duration", r.Result.RequeueAfter)
+		}
+
+		return ctrl.Result{}, r.err
 	}
 
-	r.logger.V(10).Info("Reconciling Grafana Operator OperatorGroup")
-	if err := r.reconcileOperatorGroup(ctx); err != nil {
-		return controllerruntime.Result{}, err
+	logger.Info("Start reconcile")
+	if res := r.reconcileNamespace(ctx); res.stop {
+		return result(res)
 	}
 
-	r.logger.V(10).Info("Reconciling Grafana Operator Subscription")
-	if err := r.reconcileSubscription(ctx); err != nil {
-		return controllerruntime.Result{}, err
+	logger.Info("Reconciling Grafana Operator OperatorGroup")
+	if res := r.reconcileOperatorGroup(ctx); res.stop {
+		return result(res)
 	}
 
-	r.logger.V(10).Info("Reconciling Grafana instance")
-	if err := r.reconcileGrafana(ctx); err != nil {
-		return controllerruntime.Result{}, err
+	logger.Info("Reconciling Grafana Operator Subscription")
+	if res := r.reconcileSubscription(ctx); res.stop {
+		return result(res)
 	}
 
-	return controllerruntime.Result{}, nil
+	// after Grafana is subscribed, we expect Grafana CRD to be added and hence
+	// need to wait it to be present before applying grafana CR
+	logger.Info("Reconciling if Grafana CRD is present")
+	if res := r.reconcileGrafanaCRD(ctx); res.stop {
+		return result(res)
+	}
+
+	logger.Info("Reconciling Grafana instance")
+	if res := r.reconcileGrafana(ctx); res.stop {
+		return result(res)
+	}
+
+	return ctrl.Result{}, nil
 }
 
-func (r *reconciler) reconcileNamespace(ctx context.Context) error {
-	key := types.NamespacedName{
-		Name: Namespace,
-	}
+func (r *reconciler) reconcileNamespace(ctx context.Context) reconcileResult {
+
+	key := types.NamespacedName{Name: Namespace}
 	var namespace corev1.Namespace
 	err := r.k8sClient.Get(ctx, key, &namespace)
-	if err == nil {
-		r.logger.V(10).Info("Namespace already exists")
-		return nil
+	if err != nil && !errors.IsNotFound(err) {
+		return reconcileError(err)
 	}
 
 	if errors.IsNotFound(err) {
 		r.logger.Info("Creating namespace", "Namespace", namespace)
-		return r.k8sClient.Create(ctx, NewNamespace())
+		err = r.k8sClient.Create(ctx, NewNamespace())
+		return creationResult(0, err)
 	}
 
-	r.logger.Error(err, "error reconciling namespace ")
-	return err
+	///
+	// requeue if namespace is marked for deletion
+	// TODO(sthaha): decide if want to use finalizers to prevent deletion but
+	// we also need to solve how to properly cleanup / uninstall operator
+
+	if namespace.Status.Phase != corev1.NamespaceActive {
+		r.logger.Info("namespace is present but not active", "phase", namespace.Status.Phase)
+		return requeue(5*time.Second, nil)
+	}
+	return next()
 }
 
-func (r *reconciler) reconcileOperatorGroup(ctx context.Context) error {
+func (r *reconciler) reconcileOperatorGroup(ctx context.Context) reconcileResult {
 	key := types.NamespacedName{
 		Name:      operatorGroupName,
 		Namespace: Namespace,
 	}
 	var operatorGroup operatorsv1.OperatorGroup
+
 	err := r.k8sClient.Get(ctx, key, &operatorGroup)
-	if err == nil {
-		r.logger.Info("Updating Grafana Operator OperatorGroup")
-		operatorGroup.Spec = NewOperatorGroup().Spec
-		return r.k8sClient.Update(ctx, &operatorGroup)
-	}
-	if errors.IsNotFound(err) {
-		r.logger.Info("Creating Grafana Operator OperatorGroup")
-		return r.k8sClient.Create(ctx, NewOperatorGroup())
+	if err != nil && !errors.IsNotFound(err) {
+		return reconcileError(err)
 	}
 
-	r.logger.Error(err, "error reconciling operator group")
-	return err
+	// create
+	if errors.IsNotFound(err) {
+		r.logger.Info("Creating Grafana OperatorGroup")
+		err := r.k8sClient.Create(ctx, NewOperatorGroup())
+		return creationResult(5*time.Second, err)
+	}
+
+	// update
+	r.logger.Info("Updating Grafana Operator OperatorGroup")
+	desired := NewOperatorGroup().Spec
+	operatorGroup.Spec = desired
+	err = r.k8sClient.Update(ctx, &operatorGroup)
+	return updationResult(err)
 }
 
-func (r *reconciler) reconcileSubscription(ctx context.Context) error {
+func (r *reconciler) reconcileSubscription(ctx context.Context) reconcileResult {
 	key := types.NamespacedName{
 		Name:      subscriptionName,
 		Namespace: Namespace,
 	}
 	var subscription v1alpha1.Subscription
 	err := r.k8sClient.Get(ctx, key, &subscription)
-	if err == nil {
-		r.logger.Info("Updating Grafana Operator Subscription")
-		subscription.Spec = NewSubscription().Spec
-		return r.k8sClient.Update(ctx, &subscription)
+	if err != nil && !errors.IsNotFound(err) {
+		return reconcileError(err)
 	}
+
+	// create
 	if errors.IsNotFound(err) {
 		r.logger.Info("Creating Grafana Operator Subscription")
-		return r.k8sClient.Create(ctx, NewSubscription())
+		err := r.k8sClient.Create(ctx, NewSubscription())
+		return creationResult(15*time.Second, err)
 	}
 
-	return err
+	r.logger.Info("Updating Grafana Operator Subscription")
+	subscription.Spec = NewSubscription().Spec
+	err = r.k8sClient.Update(ctx, &subscription)
+	return updationResult(err)
 }
 
-func (r *reconciler) reconcileGrafana(ctx context.Context) error {
-	var grafana integreatlyv1alpha1.Grafana
-	key := types.NamespacedName{Name: grafanaName, Namespace: Namespace}
-	err := r.k8sClient.Get(ctx, key, &grafana)
+func (r *reconciler) reconcileGrafana(ctx context.Context) reconcileResult {
+	key := types.NamespacedName{
+		Name:      grafanaName,
+		Namespace: Namespace,
+	}
 
-	if err == nil {
-		r.logger.Info("Updating Grafana instance")
-		grafana.Spec = newGrafana().Spec
-		return r.k8sClient.Update(ctx, &grafana)
+	var grafana integreatlyv1alpha1.Grafana
+	err := r.k8sClient.Get(ctx, key, &grafana)
+	if err != nil && !errors.IsNotFound(err) {
+		return reconcileError(err)
+	}
+
+	// create
+	if errors.IsNotFound(err) {
+		r.logger.Info("Creating Grafana instance")
+		err := r.k8sClient.Create(ctx, newGrafana())
+		return creationResult(20*time.Second, err)
+	}
+
+	// update
+	r.logger.Info("Updating Grafana instance")
+	grafana.Spec = newGrafana().Spec
+	err = r.k8sClient.Update(ctx, &grafana)
+	return updationResult(err)
+}
+
+func (r *reconciler) reconcileGrafanaCRD(ctx context.Context) reconcileResult {
+	grafana := types.NamespacedName{Name: "grafanas.integreatly.org"}
+	crd := apiextv1.CustomResourceDefinition{}
+
+	err := r.k8sClient.Get(context.Background(), grafana, &crd)
+	if err != nil && !errors.IsNotFound(err) {
+		return reconcileError(err)
 	}
 
 	if errors.IsNotFound(err) {
-		r.logger.Info("Creating Grafana instance")
-		return r.k8sClient.Create(ctx, newGrafana())
+		// allow time for creation
+		return requeue(10*time.Second, nil)
 	}
 
-	return err
+	// crd exists but must be in Established state; else requeue
+	for _, c := range crd.Status.Conditions {
+		if c.Type == apiextv1.Established && c.Status == apiextv1.ConditionTrue {
+			return next()
+		}
+	}
+
+	// requeue until in established state
+	return requeue(2*time.Second, nil)
 }
 
 func NewNamespace() *corev1.Namespace {
@@ -399,4 +476,58 @@ func singleResourceInformer(name string, namespace string, resource string, obje
 		0,
 		cache.Indexers{},
 	)
+}
+
+func creationResult(d time.Duration, err error) reconcileResult {
+
+	// requeue on creation
+	if err == nil {
+		return requeue(d, nil)
+	}
+
+	// do not requeue if object exists
+	if errors.IsAlreadyExists(err) {
+		return next()
+	}
+
+	return reconcileError(err)
+}
+
+// returns whether to requeue
+func updationResult(err error) reconcileResult {
+	// do not requeue if updation is successful since the informer should
+	// trigger a reconcilation loop
+	if err == nil {
+		return next()
+	}
+
+	// requeue if the cache is invalid and do not log error
+	if errors.IsConflict(err) {
+		return requeue(2*time.Second, nil)
+	}
+
+	return reconcileError(err)
+}
+
+func next() reconcileResult {
+	return reconcileResult{
+		stop: false,
+	}
+}
+
+func requeue(d time.Duration, err error) reconcileResult {
+
+	res := ctrl.Result{RequeueAfter: d, Requeue: true}
+	return reconcileResult{
+		stop:   true,
+		err:    err,
+		Result: res,
+	}
+}
+
+func reconcileError(err error) reconcileResult {
+	return reconcileResult{
+		stop: true,
+		err:  err,
+	}
 }
