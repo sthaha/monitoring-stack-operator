@@ -46,11 +46,13 @@ import (
 
 	"github.com/go-logr/logr"
 	monv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	goctrl "github.com/rhobs/monitoring-stack-operator/pkg/controllers/grafana-operator"
 )
 
 const (
 	grafanaDatasourceOwnerName      = "monitoring-stack-operator/owner-name"
 	grafanaDatasourceOwnerNamespace = "monitoring-stack-operator/owner-namespace"
+	finalizerName                   = "monitoring-stack-grafana-ds/finalizer"
 )
 
 type reconciler struct {
@@ -126,6 +128,11 @@ func RegisterWithManager(mgr ctrl.Manager, opts Options) error {
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	var (
+		requeue      bool
+		finalizerErr error
+	)
+
 	logger := r.logger.WithValues("stack", req.NamespacedName)
 	logger.Info("Reconciling monitoring stack")
 	ms, err := r.getStack(ctx, req)
@@ -142,8 +149,19 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
 	if requeue, err := r.createGrafanaDSWatch(ctx); err != nil {
+		return ctrl.Result{}, err
+	} else if requeue {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if ms.ObjectMeta.DeletionTimestamp.IsZero() {
+		requeue, finalizerErr = r.setupFinalizer(ctx, ms)
+	} else {
+		requeue, finalizerErr = r.cleanupResources(ctx, ms)
+	}
+
+	if finalizerErr != nil {
 		return ctrl.Result{}, err
 	} else if requeue {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
@@ -164,8 +182,51 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		}
 	}
-
 	return ctrl.Result{}, nil
+}
+
+func (r *reconciler) cleanupResources(ctx context.Context, ms *stack.MonitoringStack) (bool, error) {
+	logger := r.logger.WithValues("clean-up-resources")
+	if controllerutil.ContainsFinalizer(ms, finalizerName) {
+		grafanaDS := &grafanav1alpha1.GrafanaDataSource{}
+		if err := r.k8sClient.Get(ctx,
+			types.NamespacedName{Namespace: goctrl.Namespace, Name: grafanaDSName(ms)},
+			grafanaDS); err != nil {
+			return false, err
+		}
+
+		if err := r.k8sClient.Delete(ctx, grafanaDS); err != nil {
+			logger.V(3).Info("Could not delete grafana data source")
+		}
+		controllerutil.RemoveFinalizer(ms, finalizerName)
+
+		if err := r.k8sClient.Update(ctx, ms); err != nil {
+			if errors.IsConflict(err) {
+				return true, nil
+			}
+			return false, err
+		}
+		return false, nil
+	}
+	return false, nil
+}
+
+func (r *reconciler) setupFinalizer(ctx context.Context, ms *stack.MonitoringStack) (bool, error) {
+	if !controllerutil.ContainsFinalizer(ms, finalizerName) {
+		controllerutil.AddFinalizer(ms, finalizerName)
+		if err := r.k8sClient.Update(ctx, ms); err != nil {
+			if errors.IsConflict(err) {
+				return true, nil
+			}
+			return false, err
+		}
+		return false, nil
+	}
+	return false, nil
+}
+
+func grafanaDSName(ms *stack.MonitoringStack) string {
+	return fmt.Sprintf("ms-%s-%s", ms.Namespace, ms.Name)
 }
 
 func (r *reconciler) getStack(ctx context.Context, req ctrl.Request) (*stack.MonitoringStack, error) {

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	grafana_operator "github.com/rhobs/monitoring-stack-operator/pkg/controllers/grafana-operator"
+	goctrl "github.com/rhobs/monitoring-stack-operator/pkg/controllers/grafana-operator"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -84,6 +84,9 @@ func TestMonitoringStackController(t *testing.T) {
 		}, {
 			name:     "Grafana data source is recreated on delete",
 			scenario: recreateDeleteGrafanaDS,
+		}, {
+			name:     "Deletion of monitoring stack cleans up grafana datasource",
+			scenario: cleanupGrafanaDS,
 		},
 	}
 
@@ -177,10 +180,10 @@ func recreateDeleteGrafanaDS(t *testing.T) {
 	assert.NilError(t, err, "failed to create a monitoring stack")
 
 	grafanaDS := grafanav1alpha1.GrafanaDataSource{}
-	f.AssertResourceEventuallyExists(datasourceName, grafana_operator.Namespace, &grafanaDS)
+	f.AssertResourceEventuallyExists(datasourceName, goctrl.Namespace, &grafanaDS)
 
 	f.K8sClient.Delete(context.Background(), &grafanaDS)
-	f.AssertResourceEventuallyExists(datasourceName, grafana_operator.Namespace, &grafanaDS)
+	f.AssertResourceEventuallyExists(datasourceName, goctrl.Namespace, &grafanaDS)
 }
 
 func validateStackLogLevel(t *testing.T) {
@@ -353,6 +356,24 @@ func assertAlertmanagerReceivesAlerts(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func cleanupGrafanaDS(t *testing.T) {
+	ms := newMonitoringStack(t, "test-cleanup-grafana-ds")
+	datasourceName := fmt.Sprintf("ms-%s-%s", ms.Namespace, ms.Name)
+
+	err := f.K8sClient.Create(context.Background(), ms)
+	assert.NilError(t, err, "failed to create a monitoring stack")
+
+	grafanaDS := &grafanav1alpha1.GrafanaDataSource{}
+
+	f.AssertResourceEventuallyExists(datasourceName, goctrl.Namespace, grafanaDS)
+
+	assert.NilError(t, err, "grafana data source is not created")
+
+	f.K8sClient.Delete(context.Background(), ms)
+
+	f.AssertResourceNeverExists(datasourceName, goctrl.Namespace, grafanaDS)
 }
 
 func getAlertmanagerAlerts() ([]alert, error) {
