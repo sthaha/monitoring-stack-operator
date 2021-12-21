@@ -205,14 +205,14 @@ lint-golang: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run ./... --fix
 
 .PHONY: lint-jsonnet
-lint-jsonnet: $(JSONNET_LINT) $(JSONNET_VENDOR)
+lint-jsonnet: $(JSONNET_LINT) $(JSONNET_VENDOR_DIR)
 	find jsonnet/ -name 'vendor' -prune \
 		-o -name '*.libsonnet' -print \
 		-o -name '*.jsonnet' -print \
 	| xargs -n 1 -- $(JSONNET_LINT) -J $(JSONNET_VENDOR_DIR)
 
 .PHONY: fmt-jsonnet
-fmt-jsonnet: $(JSONNETFMT) $(JSONNET_VENDOR)
+fmt-jsonnet: $(JSONNETFMT) $(JSONNET_VENDOR_DIR)
 	find jsonnet/ -name 'vendor' -prune \
 		-o -name '*.libsonnet' -print \
 		-o -name '*.jsonnet' -print \
@@ -223,11 +223,11 @@ fmt-jsonnet: $(JSONNETFMT) $(JSONNET_VENDOR)
 check-jq:
 	jq --version > /dev/null
 
-$(JSONNET_VENDOR): $(JB)
+$(JSONNET_VENDOR_DIR): $(JB)
 	cd jsonnet && $(JB) install
 
 .PHONY: generate-prometheus-rules
-generate-prometheus-rules: jsonnet-tools check-jq kustomize $(JSONNET_VENDOR)
+generate-prometheus-rules: jsonnet-tools check-jq kustomize $(JSONNET_VENDOR_DIR)
 	for dir in jsonnet/components/*/; do \
 		component=$$(basename $$dir) ;\
 		echo "Generating prometheusrule file for $$component" ;\
@@ -394,4 +394,4 @@ kind-cluster: $(OPERATOR_SDK)
 
 .PHONY: clean
 clean:
-	rm -rf $(JSONNET_VENDOR) bundle/ bundle.Dockerfile
+	rm -rf $(JSONNET_VENDOR_DIR) bundle/ bundle.Dockerfile
