@@ -225,7 +225,7 @@ func (r *reconciler) setupFinalizer(ctx context.Context, ms *stack.MonitoringSta
 	return ctrl.Result{}, err
 }
 
-func grafanaDSName(ms *stack.MonitoringStack) string {
+func GrafanaDSName(ms *stack.MonitoringStack) string {
 	return fmt.Sprintf("ms-%s-%s", ms.Namespace, ms.Name)
 }
 
