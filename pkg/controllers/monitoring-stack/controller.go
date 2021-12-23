@@ -128,10 +128,6 @@ func RegisterWithManager(mgr ctrl.Manager, opts Options) error {
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var (
-		requeue      bool
-		finalizerErr error
-	)
 
 	logger := r.logger.WithValues("stack", req.NamespacedName)
 	logger.Info("Reconciling monitoring stack")
@@ -145,30 +141,22 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	patchers, err := stackComponentPatchers(ms, r.instanceSelectorKey, r.instanceSelectorValue)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 	if requeue, err := r.createGrafanaDSWatch(ctx); err != nil {
 		return ctrl.Result{}, err
 	} else if requeue {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	if ms.ObjectMeta.DeletionTimestamp.IsZero() {
-		requeue, finalizerErr = r.setupFinalizer(ctx, ms)
-	} else {
-		requeue, finalizerErr = r.cleanupResources(ctx, ms)
+	// ms is marked to deletion; so cleanup resources and quit the loop
+	if !ms.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.cleanupResources(ctx, ms)
 	}
 
-	if finalizerErr != nil {
+	patchers, err := stackComponentPatchers(ms, r.instanceSelectorKey, r.instanceSelectorValue)
+	if err != nil {
 		return ctrl.Result{}, err
-	} else if requeue {
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
-
 	for _, patcher := range patchers {
-
 		err := r.reconcileObject(ctx, ms, patcher)
 
 		// handle creation / updation errors that can happen due to a stale cache by
@@ -182,47 +170,59 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		}
 	}
-	return ctrl.Result{}, nil
+	return r.setupFinalizer(ctx, ms)
+
+}
+func (r *reconciler) deleteGrafanaDS(ctx context.Context, ms *stack.MonitoringStack) error {
+	logger := r.logger.WithValues("Stack", ms.Namespace+"/"+ms.Name)
+
+	gds := types.NamespacedName{Namespace: goctrl.Namespace, Name: grafanaDSName(ms)}
+	grafanaDS := grafanav1alpha1.GrafanaDataSource{}
+	if err := r.k8sClient.Get(ctx, gds, &grafanaDS); err != nil {
+		// if the datasource is already deleted, take no further action
+		return client.IgnoreNotFound(err)
+	}
+
+	// grafana ds exists; so delete it
+	logger.Info("Deleting GrafanaDataSource")
+	if err := r.k8sClient.Delete(ctx, &grafanaDS); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	return nil
 }
 
-func (r *reconciler) cleanupResources(ctx context.Context, ms *stack.MonitoringStack) (bool, error) {
-	logger := r.logger.WithValues("clean-up-resources")
+func (r *reconciler) cleanupResources(ctx context.Context, ms *stack.MonitoringStack) (ctrl.Result, error) {
+	logger := r.logger.WithValues("Stack", ms.Namespace+"/"+ms.Name)
+
+	if err := r.deleteGrafanaDS(ctx, ms); err != nil {
+		logger.V(6).Info("Could not delete GrafanaDataSource", "err", err)
+		return ctrl.Result{}, err
+	}
+
+	logger.Info("Removing finalizer")
+	controllerutil.RemoveFinalizer(ms, finalizerName)
+	err := r.k8sClient.Update(ctx, ms)
+	if errors.IsConflict(err) {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+	return ctrl.Result{}, err
+}
+
+func (r *reconciler) setupFinalizer(ctx context.Context, ms *stack.MonitoringStack) (ctrl.Result, error) {
+	logger := r.logger.WithValues("Stack", ms.Namespace+"/"+ms.Name)
 	if controllerutil.ContainsFinalizer(ms, finalizerName) {
-		grafanaDS := &grafanav1alpha1.GrafanaDataSource{}
-		if err := r.k8sClient.Get(ctx,
-			types.NamespacedName{Namespace: goctrl.Namespace, Name: grafanaDSName(ms)},
-			grafanaDS); err != nil {
-			return false, err
-		}
-
-		if err := r.k8sClient.Delete(ctx, grafanaDS); err != nil {
-			logger.V(3).Info("Could not delete grafana data source")
-		}
-		controllerutil.RemoveFinalizer(ms, finalizerName)
-
-		if err := r.k8sClient.Update(ctx, ms); err != nil {
-			if errors.IsConflict(err) {
-				return true, nil
-			}
-			return false, err
-		}
-		return false, nil
+		return ctrl.Result{}, nil
 	}
-	return false, nil
-}
 
-func (r *reconciler) setupFinalizer(ctx context.Context, ms *stack.MonitoringStack) (bool, error) {
-	if !controllerutil.ContainsFinalizer(ms, finalizerName) {
-		controllerutil.AddFinalizer(ms, finalizerName)
-		if err := r.k8sClient.Update(ctx, ms); err != nil {
-			if errors.IsConflict(err) {
-				return true, nil
-			}
-			return false, err
-		}
-		return false, nil
+	controllerutil.AddFinalizer(ms, finalizerName)
+
+	logger.Info("Adding finalizer")
+	err := r.k8sClient.Update(ctx, ms)
+	// requeue on conflict
+	if errors.IsConflict(err) {
+		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 	}
-	return false, nil
+	return ctrl.Result{}, err
 }
 
 func grafanaDSName(ms *stack.MonitoringStack) string {
