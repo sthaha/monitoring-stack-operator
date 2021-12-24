@@ -176,7 +176,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *reconciler) deleteGrafanaDS(ctx context.Context, ms *stack.MonitoringStack) error {
 	logger := r.logger.WithValues("Stack", ms.Namespace+"/"+ms.Name)
 
-	gds := types.NamespacedName{Namespace: goctrl.Namespace, Name: grafanaDSName(ms)}
+	gds := types.NamespacedName{Namespace: goctrl.Namespace, Name: GrafanaDSName(ms)}
 	grafanaDS := grafanav1alpha1.GrafanaDataSource{}
 	if err := r.k8sClient.Get(ctx, gds, &grafanaDS); err != nil {
 		// if the datasource is already deleted, take no further action
@@ -223,10 +223,6 @@ func (r *reconciler) setupFinalizer(ctx context.Context, ms *stack.MonitoringSta
 		return ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 	}
 	return ctrl.Result{}, err
-}
-
-func GrafanaDSName(ms *stack.MonitoringStack) string {
-	return fmt.Sprintf("ms-%s-%s", ms.Namespace, ms.Name)
 }
 
 func (r *reconciler) getStack(ctx context.Context, req ctrl.Request) (*stack.MonitoringStack, error) {
