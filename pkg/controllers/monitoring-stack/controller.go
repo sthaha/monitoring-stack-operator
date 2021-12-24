@@ -174,7 +174,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 }
 func (r *reconciler) deleteGrafanaDS(ctx context.Context, ms *stack.MonitoringStack) error {
-	logger := r.logger.WithValues("Stack", ms.Namespace+"/"+ms.Name)
+	logger := r.logger.WithValues(stackName(ms)...)
 
 	gds := types.NamespacedName{Namespace: goctrl.Namespace, Name: GrafanaDSName(ms)}
 	grafanaDS := grafanav1alpha1.GrafanaDataSource{}
@@ -184,7 +184,7 @@ func (r *reconciler) deleteGrafanaDS(ctx context.Context, ms *stack.MonitoringSt
 	}
 
 	// grafana ds exists; so delete it
-	logger.Info("Deleting GrafanaDataSource")
+	logger.WithValues("GrafanaDataSource", grafanaDS.Name).Info("Deleting GrafanaDataSource")
 	if err := r.k8sClient.Delete(ctx, &grafanaDS); err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -192,7 +192,12 @@ func (r *reconciler) deleteGrafanaDS(ctx context.Context, ms *stack.MonitoringSt
 }
 
 func (r *reconciler) cleanupResources(ctx context.Context, ms *stack.MonitoringStack) (ctrl.Result, error) {
-	logger := r.logger.WithValues("Stack", ms.Namespace+"/"+ms.Name)
+	logger := r.logger.WithValues(stackName(ms)...)
+
+	if !controllerutil.ContainsFinalizer(ms, finalizerName) {
+		logger.V(6).Info("Finalizer already removed")
+		return ctrl.Result{}, nil
+	}
 
 	if err := r.deleteGrafanaDS(ctx, ms); err != nil {
 		logger.V(6).Info("Could not delete GrafanaDataSource", "err", err)
@@ -209,7 +214,7 @@ func (r *reconciler) cleanupResources(ctx context.Context, ms *stack.MonitoringS
 }
 
 func (r *reconciler) setupFinalizer(ctx context.Context, ms *stack.MonitoringStack) (ctrl.Result, error) {
-	logger := r.logger.WithValues("Stack", ms.Namespace+"/"+ms.Name)
+	logger := r.logger.WithValues(stackName(ms)...)
 	if controllerutil.ContainsFinalizer(ms, finalizerName) {
 		return ctrl.Result{}, nil
 	}
@@ -226,7 +231,7 @@ func (r *reconciler) setupFinalizer(ctx context.Context, ms *stack.MonitoringSta
 }
 
 func (r *reconciler) getStack(ctx context.Context, req ctrl.Request) (*stack.MonitoringStack, error) {
-	logger := r.logger.WithValues("stack", req.NamespacedName)
+	logger := r.logger.WithValues("Stack", req.NamespacedName)
 
 	ms := stack.MonitoringStack{}
 
@@ -245,10 +250,10 @@ func (r *reconciler) getStack(ctx context.Context, req ctrl.Request) (*stack.Mon
 func (r *reconciler) reconcileObject(ctx context.Context, ms *stack.MonitoringStack, patcher objectPatcher) error {
 	existing := patcher.empty()
 	gvk := existing.GetObjectKind().GroupVersionKind()
-	logger := r.logger.WithValues(
-		"Stack", ms.Namespace+"/"+ms.Name,
+	logger := r.logger.WithValues(stackName(ms)...).WithValues(
 		"Component", fmt.Sprintf("%s.%s/%s", gvk.Kind, gvk.Group, gvk.Version),
-		"Name", existing.GetName())
+		"Name", existing.GetName(),
+	)
 
 	key := types.NamespacedName{
 		Name:      existing.GetName(),
@@ -310,4 +315,8 @@ func (r *reconciler) createGrafanaDSWatch(ctx context.Context) (bool, error) {
 
 	return false, nil
 
+}
+
+func stackName(ms *stack.MonitoringStack) []interface{} {
+	return []interface{}{"Stack", ms.Namespace + "/" + ms.Name}
 }
