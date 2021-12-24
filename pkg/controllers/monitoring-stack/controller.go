@@ -173,6 +173,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return r.setupFinalizer(ctx, ms)
 
 }
+
 func (r *reconciler) deleteGrafanaDS(ctx context.Context, ms *stack.MonitoringStack) error {
 	logger := r.logger.WithValues(stackName(ms)...)
 
@@ -185,10 +186,8 @@ func (r *reconciler) deleteGrafanaDS(ctx context.Context, ms *stack.MonitoringSt
 
 	// grafana ds exists; so delete it
 	logger.WithValues("GrafanaDataSource", grafanaDS.Name).Info("Deleting GrafanaDataSource")
-	if err := r.k8sClient.Delete(ctx, &grafanaDS); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	return nil
+	err := r.k8sClient.Delete(ctx, &grafanaDS)
+	return client.IgnoreNotFound(err)
 }
 
 func (r *reconciler) cleanupResources(ctx context.Context, ms *stack.MonitoringStack) (ctrl.Result, error) {
