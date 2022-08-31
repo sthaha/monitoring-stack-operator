@@ -189,7 +189,8 @@ func newPrometheus(
 				EnableRemoteWriteReceiver: config.EnableRemoteWriteReceiver,
 				Secrets:                   []string{tlsSecretName},
 				Web: &monv1.PrometheusWebSpec{
-					TLSConfig: webTLSConfigForServiceCA(tlsSecretName)},
+					WebConfigFileFields: webConfigForServiceCA(tlsSecretName),
+				},
 			},
 			Retention:             ms.Spec.Retention,
 			RuleSelector:          prometheusSelector,
@@ -218,18 +219,20 @@ func newPrometheus(
 	return prometheus
 }
 
-func webTLSConfigForServiceCA(secret string) *monv1.WebTLSConfig {
+func webConfigForServiceCA(secret string) monv1.WebConfigFileFields {
 
-	return &monv1.WebTLSConfig{
-		Cert: monv1.SecretOrConfigMap{
-			Secret: &corev1.SecretKeySelector{
-				LocalObjectReference: v1.LocalObjectReference{Name: secret},
-				Key:                  "tls.crt", // set by service-ca operator
+	return monv1.WebConfigFileFields{
+		TLSConfig: &monv1.WebTLSConfig{
+			Cert: monv1.SecretOrConfigMap{
+				Secret: &corev1.SecretKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{Name: secret},
+					Key:                  "tls.crt", // set by service-ca operator
+				},
 			},
-		},
-		KeySecret: corev1.SecretKeySelector{
-			LocalObjectReference: v1.LocalObjectReference{Name: secret},
-			Key:                  "tls.key",
+			KeySecret: corev1.SecretKeySelector{
+				LocalObjectReference: v1.LocalObjectReference{Name: secret},
+				Key:                  "tls.key",
+			},
 		},
 	}
 }

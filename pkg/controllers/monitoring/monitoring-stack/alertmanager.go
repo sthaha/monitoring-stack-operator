@@ -76,7 +76,7 @@ func newAlertmanager(
 
 			Secrets: []string{tlsSecretName},
 			Web: &monv1.AlertmanagerWebSpec{
-				TLSConfig: webTLSConfigForServiceCA(tlsSecretName)},
+				WebConfigFileFields: webConfigForServiceCA(tlsSecretName)},
 		},
 	}
 }
