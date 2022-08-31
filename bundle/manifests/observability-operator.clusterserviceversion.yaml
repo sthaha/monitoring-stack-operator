@@ -227,8 +227,6 @@ spec:
         - apiGroups:
           - monitoring.coreos.com
           resources:
-          - alertmanagers
-          - prometheuses
           - servicemonitors
           verbs:
           - create
@@ -238,8 +236,10 @@ spec:
           - update
           - watch
         - apiGroups:
-          - monitoring.coreos.com
+          - monitoring.rhobs
           resources:
+          - alertmanagers
+          - prometheuses
           - servicemonitors
           verbs:
           - create

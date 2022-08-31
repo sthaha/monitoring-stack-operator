@@ -63,8 +63,6 @@ rules:
 - apiGroups:
   - monitoring.coreos.com
   resources:
-  - alertmanagers
-  - prometheuses
   - servicemonitors
   verbs:
   - create
@@ -74,8 +72,10 @@ rules:
   - update
   - watch
 - apiGroups:
-  - monitoring.coreos.com
+  - monitoring.rhobs
   resources:
+  - alertmanagers
+  - prometheuses
   - servicemonitors
   verbs:
   - create
