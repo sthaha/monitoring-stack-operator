@@ -5,66 +5,6 @@ metadata:
     alm-examples: |-
       [
         {
-          "apiVersion": "monitoring.rhobs/v1",
-          "kind": "PrometheusRule",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/component": "operator",
-              "app.kubernetes.io/name": "observability-operator-rules",
-              "app.kubernetes.io/part-of": "observability-operator",
-              "prometheus": "k8s",
-              "role": "alert-rules"
-            },
-            "name": "observability-operator-rules",
-            "namespace": "operators"
-          },
-          "spec": {
-            "groups": [
-              {
-                "name": "observability-operator.rules",
-                "rules": [
-                  {
-                    "alert": "Observability Operator controller reconcile errors",
-                    "annotations": {
-                      "description": "Observability Operator controller - {{ $labels.controller }} fails to reconcile.\nInspect the observability-operator log for potential root causes.\n",
-                      "summary": "Observability Operator controller - {{ $labels.controller }} fails to reconcile"
-                    },
-                    "expr": "increase(controller_runtime_reconcile_errors_total{job=\"observability-operator\"}[15m]) \u003e 0\n",
-                    "for": "15m",
-                    "labels": {
-                      "severity": "warning"
-                    }
-                  },
-                  {
-                    "alert": "Observability Operator controller reconcilation takes longer than 10 minutes",
-                    "annotations": {
-                      "description": "Observability Operator controller reconcilation takes longer than 10 minutes for the controller - {{ $labels.controller }}.\nInspect the observability-operator log for potential root causes.\n",
-                      "summary": "Observability Operator controller - {{ $labels.controller }} reconcilation takes too long to reconcile"
-                    },
-                    "expr": "rate(controller_runtime_reconcile_time_seconds_sum{job=\"observability-operator\"}[5m]) /\nrate(controller_runtime_reconcile_time_seconds_count{job=\"observability-operator\"}[5m])\n\u003e 600\n",
-                    "for": "10m",
-                    "labels": {
-                      "severity": "warning"
-                    }
-                  },
-                  {
-                    "alert": "Observability Operator controller backlog is not being drained",
-                    "annotations": {
-                      "description": "The backlog of Observability Operator controller - {{ $labels.name }} is not getting drained; an indication that reconcile loop may be stuck\nInspect the observability-operator log for potential root causes.\n",
-                      "summary": "Observability Operator controller - {{ $labels.name }} backlog is not being drained."
-                    },
-                    "expr": "rate(workqueue_depth{job=\"observability-operator\"}[15m]) \u003e 0\n",
-                    "for": "15m",
-                    "labels": {
-                      "severity": "critical"
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
           "apiVersion": "monitoring.rhobs/v1alpha1",
           "kind": "MonitoringStack",
           "metadata": {
@@ -101,7 +41,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.12.0+git
     operators.operatorframework.io/project_layout: unknown
-  name: observability-operator.v0.0.0-dev
+  name: observability-operator.v0.0.13
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -423,7 +363,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: quay.io/sthaha/observability-operator:0.0.0-dev
+                image: observability-operator:0.0.13
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -536,4 +476,4 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat
-  version: 0.0.0-dev
+  version: 0.0.13
