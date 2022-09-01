@@ -44,7 +44,7 @@ func assertCRDExists(t *testing.T, crds ...string) {
 
 func TestMonitoringStackController(t *testing.T) {
 	assertCRDExists(t,
-		"prometheuses.monitoring.coreos.com",
+		"prometheuses.monitoring.rhobs",
 		"monitoringstacks.monitoring.rhobs",
 	)
 

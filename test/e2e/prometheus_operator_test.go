@@ -40,9 +40,9 @@ func TestPrometheusOperatorForNonOwnedResources(t *testing.T) {
 		{
 			name: "Operator should create Prometheus Operator CRDs",
 			scenario: func(t *testing.T) {
-				f.AssertResourceEventuallyExists("prometheuses.monitoring.coreos.com", "", &apiextensionsv1.CustomResourceDefinition{})(t)
-				f.AssertResourceEventuallyExists("alertmanagers.monitoring.coreos.com", "", &apiextensionsv1.CustomResourceDefinition{})(t)
-				f.AssertResourceEventuallyExists("thanosrulers.monitoring.coreos.com", "", &apiextensionsv1.CustomResourceDefinition{})(t)
+				f.AssertResourceEventuallyExists("prometheuses.monitoring.rhobs", "", &apiextensionsv1.CustomResourceDefinition{})(t)
+				f.AssertResourceEventuallyExists("alertmanagers.monitoring.rhobs", "", &apiextensionsv1.CustomResourceDefinition{})(t)
+				f.AssertResourceEventuallyExists("thanosrulers.monitoring.rhobs", "", &apiextensionsv1.CustomResourceDefinition{})(t)
 			},
 		},
 		{
