@@ -1,16 +1,18 @@
 resources:
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_alertmanagerconfigs.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_alertmanagers.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_podmonitors.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_probes.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_prometheuses.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_prometheusrules.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_servicemonitors.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/prometheus-operator-crd/monitoring.rhobs_thanosrulers.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/rbac/prometheus-operator/prometheus-operator-deployment.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/rbac/prometheus-operator/prometheus-operator-cluster-role-binding.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/rbac/prometheus-operator/prometheus-operator-cluster-role.yaml
-- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.101/example/rbac/prometheus-operator/prometheus-operator-service-account.yaml
+# CRDS
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_alertmanagerconfigs.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_alertmanagers.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_podmonitors.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_probes.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_prometheuses.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_prometheusrules.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_servicemonitors.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/prometheus-operator-crd/monitoring.rhobs_thanosrulers.yaml
+# Deployment & RBAC
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/rbac/prometheus-operator/prometheus-operator-deployment.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/rbac/prometheus-operator/prometheus-operator-cluster-role-binding.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/rbac/prometheus-operator/prometheus-operator-cluster-role.yaml
+- https://raw.githubusercontent.com/sthaha/prometheus-operator/v0.58.0-rhobs1/example/rbac/prometheus-operator/prometheus-operator-service-account.yaml
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -38,7 +40,7 @@ patches:
           spec:
             containers:
               - name: prometheus-operator
-                image: quay.io/sthaha/rhobs-prometheus-operator:v0.58.101
+                image: quay.io/sthaha/rhobs-prometheus-operator:v0.58.0-rhobs1
                 args:
                   - --prometheus-config-reloader=quay.io/prometheus-operator/prometheus-config-reloader:v0.58.0
                   - --prometheus-instance-selector=app.kubernetes.io/managed-by=observability-operator

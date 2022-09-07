@@ -152,6 +152,7 @@ bundle: $(KUSTOMIZE) $(OPERATOR_SDK) generate
 		 	--version $(VERSION) \
 			--kustomize-dir=deploy/olm \
 			--package=observability-operator \
+			--extra-service-accounts=observability-operator-prometheus-operator \
 		 	$(BUNDLE_METADATA_OPTS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
