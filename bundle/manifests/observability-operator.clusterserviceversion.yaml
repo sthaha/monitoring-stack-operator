@@ -398,7 +398,7 @@ spec:
           app.kubernetes.io/component: controller
           app.kubernetes.io/name: prometheus-operator
           app.kubernetes.io/part-of: observability-operator
-          app.kubernetes.io/version: 0.57.0
+          app.kubernetes.io/version: 0.57.0-rhobs1
         name: observability-operator-prometheus-operator
         spec:
           replicas: 1
