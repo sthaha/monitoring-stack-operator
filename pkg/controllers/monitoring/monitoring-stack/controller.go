@@ -62,7 +62,7 @@ type Options struct {
 //+kubebuilder:rbac:groups=monitoring.rhobs,resources=monitoringstacks/status,verbs=get;update
 
 // RBAC for managing Prometheus Operator CRs
-//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=alertmanagers;prometheuses;servicemonitors,verbs=list;watch;create;update;delete;patch
+//+kubebuilder:rbac:groups=monitoring.rhobs,resources=alertmanagers;prometheuses;servicemonitors,verbs=list;watch;create;update;delete;patch
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=list;watch;create;update;delete;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts;services;secrets,verbs=list;watch;create;update;delete;patch
 //+kubebuilder:rbac:groups="policy",resources=poddisruptionbudgets,verbs=list;watch;create;update;delete;patch
