@@ -99,4 +99,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.58.0 => github.com/sthaha/prometheus-operator/pkg/apis/monitoring v0.58.0-rhobs1
+replace github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.58.0 => github.com/sthaha/prometheus-operator/pkg/apis/monitoring v0.58.0-rhobs2
