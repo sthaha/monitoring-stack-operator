@@ -25,7 +25,7 @@ update_channel() {
     return 1
   fi
 
- sed -e "s|^\($marker\)|  - name: boofar\n\1|" -i "$CATALOG_INDEX_FILE"
+ sed -e "s|^\($marker\)|  - name: $bundle\n\1|" -i "$CATALOG_INDEX_FILE"
 }
 
 main() {
@@ -38,7 +38,6 @@ main() {
 
   local -a channel_list
   readarray -td, channel_list <<< "$channels"
-  local -p channel_list
 
   for ch in ${channel_list[@]}; do
     update_channel $ch $bundle
