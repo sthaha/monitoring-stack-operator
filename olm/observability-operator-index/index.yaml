@@ -87,3 +87,5 @@ relatedImages:
 - image: quay.io/sthaha/observability-operator:0.0.13
   name: ""
 schema: olm.bundle
+
+### NOTE: Additional Bundles get added here ###
