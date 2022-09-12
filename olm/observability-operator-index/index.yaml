@@ -31,7 +31,6 @@ entries:
   - name: observability-operator.v0.0.13
 ### STABLE_CHANNEL_MARKER ###
 ---
----
 image: quay.io/sthaha/observability-operator-bundle:0.0.13
 name: observability-operator.v0.0.13
 package: observability-operator
