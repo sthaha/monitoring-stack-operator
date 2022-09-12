@@ -55,4 +55,8 @@ runs:
 
   - name: Publish catalog image
     shell: bash
-    run: make catalog-push
+    run: |
+      git config user.name rhobs-release-bot
+      git config user.email release-bot@monitoring.rhobs.io
+      make catalog-push
+      git push
