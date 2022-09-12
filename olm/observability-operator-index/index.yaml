@@ -70,6 +70,7 @@ package: observability-operator
 name: development
 entries:
   - name: observability-operator.v0.0.13
+  - name: boofar
 ### DEVELOPMENT_CHANNEL_MARKER ###
 
 ---
