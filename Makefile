@@ -189,6 +189,8 @@ catalog-image: $(OPM)
 	$(OPM) render $(BUNDLE_IMG) \
 		--output=yaml  >> olm/observability-operator-index/index.yaml
 	./olm/update-channels.sh $(CHANNELS) $(OPERATOR_BUNDLE)
+	$(OPM) validate ./olm/observability-operator-index
+
 
 	$(CONTAINER_RUNTIME) build \
 		-f olm/observability-operator-index.Dockerfile \

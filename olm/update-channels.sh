@@ -13,11 +13,12 @@ err() {
 }
 
 declare -r CATALOG_INDEX_FILE="olm/observability-operator-index/index.yaml"
+
 update_channel() {
   local channel=$1; shift
   local bundle=$1; shift
 
-  echo " -> channel: $channel | bundle: $bundle"
+  echo "updating channel: $channel | bundle: $bundle"
   local marker="### $(to_upper $channel)_CHANNEL_MARKER ###"
 
   if ! grep -q "$marker" "$CATALOG_INDEX_FILE"; then
@@ -25,7 +26,15 @@ update_channel() {
     return 1
   fi
 
- sed -e "s|^\($marker\)|  - name: $bundle\n\1|" -i "$CATALOG_INDEX_FILE"
+  # find the entry before that
+  local previous_entry
+  previous_entry=$(grep "$marker" -B2 "$CATALOG_INDEX_FILE" | grep  'name:' | cut -f2 -d:)
+  echo " -> found previous: $previous_entry"
+
+ sed -e \
+   "s|^\($marker\)|  - name: $bundle\n    replaces: $previous_entry\n\1|" \
+   -i "$CATALOG_INDEX_FILE"
+
 }
 
 main() {
@@ -35,12 +44,12 @@ main() {
 
   echo "channels: $channels | bundle: $bundle"
 
-
+  # convert coma seperated list to an array
   local -a channel_list
   readarray -td, channel_list <<< "$channels"
 
   for ch in ${channel_list[@]}; do
-    update_channel $ch $bundle
+    update_channel "$ch" "$bundle"
   done
 
   return $?
