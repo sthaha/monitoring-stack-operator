@@ -190,12 +190,13 @@ catalog-image: $(OPM)
 		--output=yaml  >> olm/observability-operator-index/index.yaml
 	./olm/update-channels.sh $(CHANNELS) $(OPERATOR_BUNDLE)
 
-	git add olm/observability-operator-index/index.yaml
-	git commit -m "chore: update olm catalog index"
-
 	$(CONTAINER_RUNTIME) build \
 		-f olm/observability-operator-index.Dockerfile \
 		-t $(CATALOG_IMG)
+
+	# git add the index.yaml only if the catalog could be built sucessfully
+	git add olm/observability-operator-index/index.yaml
+	git commit -m "ci(bot): update catalog image"
 
 	# tag the catalog img:version as latest so that continious release
 	# is possible by refering to latest tag instead of a version
