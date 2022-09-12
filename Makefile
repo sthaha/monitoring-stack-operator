@@ -186,8 +186,8 @@ CATALOG_IMG_LATEST ?= $(IMAGE_BASE)-catalog:latest
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-image
 catalog-image: $(OPM)
-	# $(OPM) render $(BUNDLE_IMG) \
-	#   --output=yaml  >> olm/observability-operator-index/index.yaml
+	$(OPM) render $(BUNDLE_IMG) \
+		--output=yaml  >> olm/observability-operator-index/index.yaml
 	./olm/update-channels.sh $(CHANNELS) $(OPERATOR_BUNDLE)
 
 	git add olm/observability-operator-index/index.yaml
