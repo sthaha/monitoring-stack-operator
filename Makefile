@@ -196,10 +196,6 @@ catalog-image: $(OPM)
 		-f olm/observability-operator-index.Dockerfile \
 		-t $(CATALOG_IMG)
 
-	# git add the index.yaml only if the catalog could be built sucessfully
-	git add olm/observability-operator-index/index.yaml
-	git commit -m "ci(bot): update catalog image"
-
 	# tag the catalog img:version as latest so that continious release
 	# is possible by refering to latest tag instead of a version
 	$(CONTAINER_RUNTIME) tag $(CATALOG_IMG) $(CATALOG_IMG_LATEST)
