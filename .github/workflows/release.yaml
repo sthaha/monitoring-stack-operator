@@ -87,12 +87,14 @@ jobs:
           # Create the release notes for the Github release
           git config user.name rhobs-release-bot
           git config user.email release-bot@monitoring.rhobs.io
-          npx standard-version -i RELEASE_BODY.md --release-as $(cat VERSION) --skip.commit
+          npx standard-version -i RELEASE_BODY.md  \
+            --release-as $(cat VERSION) \
+            --skip.commit
 
       - name: Publish tag
         id: publish_tag
         run: |
-          git push --follow-tags
+          # git push --follow-tags
           echo ::set-output name=tag_name::$(git describe HEAD --abbrev=0)
 
       - name: Create Github release
