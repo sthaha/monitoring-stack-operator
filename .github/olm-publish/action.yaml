@@ -52,6 +52,8 @@ runs:
   - name: Build Catalog Image
     shell: bash
     run: |
+      git fetch origin olm-catalog:olm-catalog
+      git merge olm-catalog
       make catalog-image
 
       # NOTE: add the index.yaml only if the catalog could be built sucessfully
@@ -65,5 +67,5 @@ runs:
     shell: bash
     run: |
       make catalog-push
-      # update main only if catalog could be successfully published
-      git push origin HEAD:main
+      # update olm-catalog only if catalog could be successfully published
+      git push origin HEAD:olm-catalog
