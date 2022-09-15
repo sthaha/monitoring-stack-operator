@@ -64,7 +64,7 @@ runs:
     run: |
       make catalog-image
 
-      # NOTE: add a commit only if the catalog could be built sucessfully
+      # NOTE: add a commit only if the catalog can built sucessfully
       git add bundle/ olm/
       git commit -m "ci(bot): update catalog image"
 
