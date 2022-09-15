@@ -17,35 +17,30 @@ runs:
     with:
       fetch-depth: 0
 
-  # - name: Setup Go environment
-  #   uses: actions/setup-go@v3
-  #   with:
-  #     go-version: ${{ inputs.go-version }}
+  - name: Setup Go environment
+    uses: actions/setup-go@v3
+    with:
+      go-version: ${{ inputs.go-version }}
 
-  # - name: Use go cache
-  #   uses: ./.github/go-cache
+  - name: Use go cache
+    uses: ./.github/go-cache
 
-  # - name: Install tools
-  #   uses: ./.github/tools-cache
+  - name: Install tools
+    uses: ./.github/tools-cache
 
-  # - name: Registry Login
-  #   uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-  #   with:
-  #     registry: quay.io
-  #     username: ${{ inputs.quay_login }}
-  #     password: ${{ inputs.quay_token }}
+  - name: Registry Login
+    uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+    with:
+      registry: quay.io
+      username: ${{ inputs.quay_login }}
+      password: ${{ inputs.quay_token }}
 
   - name: Git merge olm-catalog branch
     shell: bash
     run: |
       git config user.name rhobs-release-bot
       git config user.email release-bot@monitoring.rhobs.io
-
       git merge origin/olm-catalog -m "merge olm-catalog branch"
-
-      ls -l
-      find olm/
-      exit 1
 
   - name: Build Operator Image
     shell: bash
@@ -77,5 +72,6 @@ runs:
     shell: bash
     run: |
       make catalog-push
+
       # update olm-catalog only if catalog could be successfully published
       git push origin HEAD:olm-catalog
