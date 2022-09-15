@@ -5,25 +5,25 @@ on:
     branches: [main]
 
 jobs:
-  e2e-tests-olm:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  # e2e-tests-olm:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #      - uses: actions/checkout@v2
 
-      - name: Import common environment variables
-        run: cat ".github/env" >> $GITHUB_ENV
+  #      - name: Import common environment variables
+  #        run: cat ".github/env" >> $GITHUB_ENV
 
-      - name: e2e tests through OLM
-        uses: ./.github/e2e-tests-olm
-        with:
-          go-version: ${{ env.go-version }}
+  #      - name: e2e tests through OLM
+  #        uses: ./.github/e2e-tests-olm
+  #        with:
+  #          go-version: ${{ env.go-version }}
 
   publish-olm-development:
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     runs-on: ubuntu-latest
     environment: quay
-    needs:
-      - e2e-tests-olm
+    # needs:
+    #   - e2e-tests-olm
     steps:
       - uses: actions/checkout@v2
         with:
@@ -58,9 +58,15 @@ jobs:
           quay_login: ${{ secrets.QUAY_LOGIN }}
           quay_token: ${{ secrets.QUAY_TOKEN }}
 
+      - name: Push catalog index changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.REPOSITORY_PUSH_TOKEN }}
+          branch: olm-catalog
+
   create-github-prerelease:
-    needs:
-      - e2e-tests-olm
+    # needs:
+    #   - e2e-tests-olm
     runs-on: ubuntu-latest
     if: "startsWith(github.event.head_commit.message, 'chore(release):')"
     steps:
@@ -83,16 +89,15 @@ jobs:
           go-version: ${{ env.go-version }}
 
       - name: Generate release notes
+        id: release_notes
         run: |
           # Create the release notes for the Github release
           git config user.name rhobs-release-bot
           git config user.email release-bot@monitoring.rhobs.io
-          npx standard-version -i RELEASE_BODY.md --release-as $(cat VERSION) --skip.commit
+          npx standard-version -i RELEASE_BODY.md  \
+            --release-as $(cat VERSION) \
+            --skip.commit
 
-      - name: Publish tag
-        id: publish_tag
-        run: |
-          git push --follow-tags
           echo ::set-output name=tag_name::$(git describe HEAD --abbrev=0)
 
       - name: Create Github release
@@ -100,8 +105,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.REPOSITORY_PUSH_TOKEN }}
         with:
-          release_name: ${{ steps.publish_tag.outputs.tag_name }}
-          tag_name: ${{ steps.publish_tag.outputs.tag_name }}
+          release_name: ${{ steps.release_notes.outputs.tag_name }}
+          tag_name: ${{ steps.release_notes.outputs.tag_name }}
           body_path: RELEASE_BODY.md
           # We always generate pre-releases and mark them as releases manually
           prerelease: true
