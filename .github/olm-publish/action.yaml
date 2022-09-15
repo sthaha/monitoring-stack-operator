@@ -39,7 +39,8 @@ runs:
       git config user.name rhobs-release-bot
       git config user.email release-bot@monitoring.rhobs.io
 
-      git merge origin/olm-catalog --allow-unrelated-histories \
+      git merge origin/olm-catalog --strategy=ours \
+        --allow-unrelated-histories \
         -m "merge olm-catalog branch"
 
   - name: Build Operator Image
