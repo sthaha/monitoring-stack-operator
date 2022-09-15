@@ -14,7 +14,8 @@ runs:
   using: composite
   steps:
   - uses: actions/checkout@v2
-    fetch-depth: 0
+    with:
+      fetch-depth: 0
 
   # - name: Setup Go environment
   #   uses: actions/setup-go@v3
