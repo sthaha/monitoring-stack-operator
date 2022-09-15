@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.14](https://github.com/rhobs/monitoring-stack-operator/commit/) (2022-09-15)
+
+
+### Features
+
+* add API option to disable Alertmanager deployment ([217eafc](https://github.com/rhobs/monitoring-stack-operator/commit/217eafcc78a956dcbd77fd81b3276b6c55f5ae26))
+* add health probes to operator ([8661936](https://github.com/rhobs/monitoring-stack-operator/commit/86619360549364991adf48e5581113af3df48647))
+
+
+### Bug Fixes
+
+* report Available=False condition when Prometheus is degraded ([ece8d8c](https://github.com/rhobs/monitoring-stack-operator/commit/ece8d8c16663d1b04221ac0a8284da44daded1e2))
+
 ### [0.0.13](https://github.com/rhobs/monitoring-stack-operator/tree/v0.0.13) (2022-07-26)
 
 ### Features
