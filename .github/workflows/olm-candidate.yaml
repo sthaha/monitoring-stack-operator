@@ -7,7 +7,7 @@ on:
       - prereleased
 
 jobs:
-  release-candidate:
+  release:
     runs-on: ubuntu-latest
     environment: quay
     steps:
