@@ -89,7 +89,6 @@ jobs:
           go-version: ${{ env.go-version }}
 
       - name: Generate release notes
-        id: release_notes
         run: |
           # Create the release notes for the Github release
           git config user.name rhobs-release-bot
@@ -98,6 +97,13 @@ jobs:
             --release-as $(cat VERSION) \
             --skip.commit
 
+      - name: Publish tag
+        id: publish_tag
+        run: |
+          # NOTE tag is created by standard-version and points to the
+          # chore(release): commit as opposed to pointing to the commit added
+          # to olm-catalog branch after images are built and pushed
+          git push --follow-tags
           echo ::set-output name=tag_name::$(git describe HEAD --abbrev=0)
 
       - name: Create Github release
@@ -105,8 +111,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.REPOSITORY_PUSH_TOKEN }}
         with:
-          release_name: ${{ steps.release_notes.outputs.tag_name }}
-          tag_name: ${{ steps.release_notes.outputs.tag_name }}
+          release_name: ${{ steps.publish_tag.outputs.tag_name }}
+          tag_name: ${{ steps.publish_tag.outputs.tag_name }}
           body_path: RELEASE_BODY.md
-          # We always generate pre-releases and mark them as releases manually
+          # NOTE: We always generate pre-releases and mark them as releases manually
           prerelease: true

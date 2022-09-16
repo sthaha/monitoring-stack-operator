@@ -7,11 +7,13 @@ on:
       - released
 
 jobs:
-  release:
+  release-stable:
     runs-on: ubuntu-latest
     environment: quay
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Import common environment variables
         run: cat ".github/env" >> $GITHUB_ENV
