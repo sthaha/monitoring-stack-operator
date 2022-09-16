@@ -45,7 +45,7 @@ runs:
       # make initiate-release conflicts with the previous bundle created for
       # development branch, so the version in main takes precedence over the
       # one in olm-catalog branch
-      git merge origin/olm-catalog -X=ours -m "merge olm-catalog branch"
+      git merge -Xours origin/olm-catalog  -m "merge olm-catalog branch"
 
   - name: Build Operator Image
     shell: bash
