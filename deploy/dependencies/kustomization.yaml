@@ -27,11 +27,27 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: operators
-namePrefix: observability-operator-
+namePrefix: obo-
 commonLabels:
   app.kubernetes.io/part-of: observability-operator
 
 patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: prometheus-operator-admission-webhook
+      spec:
+        selector:
+          matchLabels:
+            app.kubernetes.io/part-of: observability-operator
+        template:
+          metadata:
+            annotations:
+              target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+            labels:
+              app.kubernetes.io/part-of: observability-operator
+
   - patch: |-
       apiVersion: apps/v1
       kind: Deployment
