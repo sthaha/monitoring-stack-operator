@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: prometheus-operator-admission-webhook
     app.kubernetes.io/part-of: observability-operator
     app.kubernetes.io/version: 0.59.1-rhobs4
-  name: observability-operator-prometheus-operator-admission-webhook
+  name: obo-prometheus-operator-admission-webhook
 spec:
   minAvailable: 1
   selector:

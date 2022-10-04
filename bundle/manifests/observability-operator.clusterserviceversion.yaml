@@ -13,7 +13,7 @@ metadata:
               "app.kubernetes.io/part-of": "observability-operator",
               "app.kubernetes.io/version": "0.59.1-rhobs4"
             },
-            "name": "observability-operator-prometheus-operator-admission-webhook",
+            "name": "obo-prometheus-operator-admission-webhook",
             "namespace": "operators"
           },
           "spec": {
@@ -194,7 +194,7 @@ spec:
           - securitycontextconstraints
           verbs:
           - use
-        serviceAccountName: observability-operator-prometheus-operator
+        serviceAccountName: obo-prometheus-operator
       - rules:
         - apiGroups:
           - ""
@@ -360,73 +360,11 @@ spec:
         serviceAccountName: observability-operator-sa
       deployments:
       - label:
-          app.kubernetes.io/component: operator
-          app.kubernetes.io/name: observability-operator
-          app.kubernetes.io/version: 0.0.1
-        name: observability-operator
-        spec:
-          replicas: 1
-          selector:
-            matchLabels:
-              app.kubernetes.io/component: operator
-              app.kubernetes.io/name: observability-operator
-          strategy: {}
-          template:
-            metadata:
-              labels:
-                app.kubernetes.io/component: operator
-                app.kubernetes.io/name: observability-operator
-                app.kubernetes.io/version: 0.0.1
-            spec:
-              affinity:
-                nodeAffinity:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                  - preference:
-                      matchExpressions:
-                      - key: node-role.kubernetes.io/infra
-                        operator: Exists
-                    weight: 1
-              containers:
-              - args:
-                - --namespace=$(NAMESPACE)
-                env:
-                - name: NAMESPACE
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.namespace
-                image: observability-operator:0.0.14
-                imagePullPolicy: IfNotPresent
-                livenessProbe:
-                  httpGet:
-                    path: /healthz
-                    port: 8081
-                name: operator
-                readinessProbe:
-                  httpGet:
-                    path: /healthz
-                    port: 8081
-                resources:
-                  limits:
-                    cpu: 50m
-                    memory: 150Mi
-                  requests:
-                    cpu: 5m
-                    memory: 50Mi
-                securityContext:
-                  allowPrivilegeEscalation: false
-                  capabilities:
-                    drop:
-                    - ALL
-              securityContext:
-                runAsNonRoot: true
-              serviceAccountName: observability-operator-sa
-              terminationGracePeriodSeconds: 30
-      - label:
           app.kubernetes.io/component: controller
           app.kubernetes.io/name: prometheus-operator
           app.kubernetes.io/part-of: observability-operator
           app.kubernetes.io/version: 0.59.1-rhobs4
-        name: observability-operator-prometheus-operator
+        name: obo-prometheus-operator
         spec:
           replicas: 1
           selector:
@@ -483,12 +421,12 @@ spec:
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 65534
-              serviceAccountName: observability-operator-prometheus-operator
+              serviceAccountName: obo-prometheus-operator
       - label:
           app.kubernetes.io/name: prometheus-operator-admission-webhook
           app.kubernetes.io/part-of: observability-operator
           app.kubernetes.io/version: 0.59.1-rhobs4
-        name: observability-operator-prometheus-operator-admission-webhook
+        name: obo-prometheus-operator-admission-webhook
         spec:
           replicas: 2
           selector:
@@ -500,6 +438,7 @@ spec:
             metadata:
               annotations:
                 kubectl.kubernetes.io/default-container: prometheus-operator-admission-webhook
+                target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
               labels:
                 app.kubernetes.io/name: prometheus-operator-admission-webhook
                 app.kubernetes.io/part-of: observability-operator
@@ -526,7 +465,69 @@ spec:
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 65534
-              serviceAccountName: observability-operator-prometheus-operator-admission-webhook
+              serviceAccountName: obo-prometheus-operator-admission-webhook
+      - label:
+          app.kubernetes.io/component: operator
+          app.kubernetes.io/name: observability-operator
+          app.kubernetes.io/version: 0.0.1
+        name: observability-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: operator
+              app.kubernetes.io/name: observability-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/component: operator
+                app.kubernetes.io/name: observability-operator
+                app.kubernetes.io/version: 0.0.1
+            spec:
+              affinity:
+                nodeAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                  - preference:
+                      matchExpressions:
+                      - key: node-role.kubernetes.io/infra
+                        operator: Exists
+                    weight: 1
+              containers:
+              - args:
+                - --namespace=$(NAMESPACE)
+                env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: quay.io/sthaha/observability-operator:0.0.1-rhobs-dev
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                name: operator
+                readinessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                resources:
+                  limits:
+                    cpu: 50m
+                    memory: 150Mi
+                  requests:
+                    cpu: 5m
+                    memory: 50Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: observability-operator-sa
+              terminationGracePeriodSeconds: 30
     strategy: deployment
   installModes:
   - supported: false
