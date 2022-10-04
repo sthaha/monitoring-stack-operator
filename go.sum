@@ -1230,6 +1230,8 @@ github.com/sthaha/obo-prometheus-operator/pkg/apis/monitoring v0.59.1-rhobs1 h1:
 github.com/sthaha/obo-prometheus-operator/pkg/apis/monitoring v0.59.1-rhobs1/go.mod h1:nHbhLfDBgkAo/YpZ84PSIHq+ETu0B2PqCaRSbVh7b4g=
 github.com/sthaha/obo-prometheus-operator/pkg/apis/monitoring v0.59.1-rhobs3 h1:Rphe8qSFIhc3qWboTomLNMefxhhIkHwf1TYas19Ra6w=
 github.com/sthaha/obo-prometheus-operator/pkg/apis/monitoring v0.59.1-rhobs3/go.mod h1:nHbhLfDBgkAo/YpZ84PSIHq+ETu0B2PqCaRSbVh7b4g=
+github.com/sthaha/obo-prometheus-operator/pkg/apis/monitoring v0.59.1-rhobs4 h1:g2R04MCF5jdr+Aa7IiUT4nxR5aM+W8H2doRZsS3Em8U=
+github.com/sthaha/obo-prometheus-operator/pkg/apis/monitoring v0.59.1-rhobs4/go.mod h1:nHbhLfDBgkAo/YpZ84PSIHq+ETu0B2PqCaRSbVh7b4g=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
 github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
 github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
