@@ -969,7 +969,7 @@ spec:
           app.kubernetes.io/component: controller
           app.kubernetes.io/name: prometheus-operator
           app.kubernetes.io/part-of: observability-operator
-          app.kubernetes.io/version: 0.59.1-rhobs1
+          app.kubernetes.io/version: 0.59.1-rhobs3
         name: observability-operator-prometheus-operator
         spec:
           replicas: 1
@@ -988,7 +988,7 @@ spec:
                 app.kubernetes.io/component: controller
                 app.kubernetes.io/name: prometheus-operator
                 app.kubernetes.io/part-of: observability-operator
-                app.kubernetes.io/version: 0.59.1-rhobs1
+                app.kubernetes.io/version: 0.59.1-rhobs3
             spec:
               affinity:
                 nodeAffinity:
@@ -1001,11 +1001,11 @@ spec:
               automountServiceAccountToken: true
               containers:
               - args:
-                - --prometheus-config-reloader=quay.io/sthaha/obo-prometheus-config-reloader:v0.59.1-rhobs1
+                - --prometheus-config-reloader=quay.io/sthaha/obo-prometheus-config-reloader:v0.59.1-rhobs3
                 - --prometheus-instance-selector=app.kubernetes.io/managed-by=observability-operator
                 - --alertmanager-instance-selector=app.kubernetes.io/managed-by=observability-operator
                 - --thanos-ruler-instance-selector=app.kubernetes.io/managed-by=observability-operator
-                image: quay.io/sthaha/obo-prometheus-operator:v0.59.1-rhobs1
+                image: quay.io/sthaha/obo-prometheus-operator:v0.59.1-rhobs3
                 name: prometheus-operator
                 ports:
                 - containerPort: 8080
