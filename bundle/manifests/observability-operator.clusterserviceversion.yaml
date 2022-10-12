@@ -41,15 +41,12 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: unknown
-  name: observability-operator.v0.0.14
+  name: observability-operator.v0.0.0-failing-bundle
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: AlertmanagerConfig
-      name: alertmanagerconfigs.monitoring.rhobs
-      version: v1alpha1
     - kind: Alertmanager
       name: alertmanagers.monitoring.rhobs
       version: v1
@@ -430,7 +427,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: observability-operator:0.0.14
+                image: quay.io/sthaha/observability-operator:0.0.0-failing-bundle
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -485,4 +482,4 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat
-  version: 0.0.14
+  version: 0.0.0-failing-bundle
