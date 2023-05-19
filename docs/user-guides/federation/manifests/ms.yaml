@@ -1,0 +1,21 @@
+apiVersion: monitoring.rhobs/v1alpha1
+kind: MonitoringStack
+metadata:
+  name: federation-ms
+  namespace: prom-federation
+spec:
+  resourceSelector: {}
+  namespaceSelector:
+    matchLabels:
+      monitoring.rhobs/stack: federation-ms
+  replicas: 1
+  logLevel: debug
+  retention: 3h
+  alertmanagerConfig:
+    disabled: true
+  prometheusConfig:
+    enableRemoteWriteReceiver: true
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
