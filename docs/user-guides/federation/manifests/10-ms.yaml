@@ -1,20 +1,25 @@
 apiVersion: monitoring.rhobs/v1alpha1
 kind: MonitoringStack
 metadata:
-  name: federation-ms
-  namespace: prom-federation
+  name: federate-cmo-ms
+  namespace: federate-cmo
 spec:
-  resourceSelector: {}
+  resourceSelector: 
+    matchLabels:
+      monitoring.rhobs/stack: federate-cmo-ms
+
   namespaceSelector:
     matchLabels:
-      monitoring.rhobs/stack: federation-ms
-  replicas: 1
+      kubernetes.io/metadata.name: openshift-monitoring
+
   logLevel: debug
   retention: 3h
   alertmanagerConfig:
     disabled: true
   prometheusConfig:
+    replicas: 1
     enableRemoteWriteReceiver: true
+
   resources:
     requests:
       cpu: 500m

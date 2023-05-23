@@ -1,30 +1,23 @@
 apiVersion: monitoring.rhobs/v1
 kind: ServiceMonitor
 metadata:
-  name: federate-ms-cmo
+  name: federate-cmo-ms
   namespace: openshift-monitoring
   labels:
-    kubernetes.io/part-of: federation-ms
-    monitoring.rhobs/stack: federation-ms
+    kubernetes.io/part-of: federate-cmo-ms
+    monitoring.rhobs/stack: federate-cmo-ms
 
 spec:
-  # namespaceSelector: {}
   selector:
     matchLabels:
       app.kubernetes.io/component: prometheus
       app.kubernetes.io/instance: k8s
       app.kubernetes.io/name: prometheus
       app.kubernetes.io/part-of: openshift-monitoring
+
   endpoints:
-  - honorLabels: true
-    interval: 30s
 
-    # relabel example  
-    relabelings:
-    - targetLabel: source
-      replacement: MC
-
-    params:
+  - params:
       'match[]':
         - '{job="prometheus"}'
         - '{__name__=~"container_.*"}'
@@ -33,7 +26,17 @@ spec:
         - '{__name__=~"node_.*"}'
         - '{__name__=~"pod:.*"}'
 
-    # static part of the the service-monitor
+    interval: 30s
+
+    # relabel example
+    relabelings:
+    - targetLabel: source
+      replacement: openshift-cluster
+
+
+    # static part of the service-monitor
+    honorLabels: true
+
     port: web
     scheme: https
     path: "/federate"
