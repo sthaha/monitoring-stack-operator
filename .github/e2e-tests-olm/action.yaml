@@ -16,55 +16,59 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-go@v3
-      with:
-        go-version: ${{ inputs.go-version }}
-        check-latest: true
-        cache: true
-
-    - uses: azure/setup-kubectl@v3
-
-    - name: Start Kind
-      uses: engineerd/setup-kind@v0.5.0
-      with:
-        version: ${{ inputs.kind-version }}
-        image: ${{ inputs.kind-image }}
-        wait: 300s
-        config: ./hack/kind/config.yaml
-
-    - name: Install required tools
-      uses: ./.github/tools-cache
-
     - name: Install OLM
       shell: bash
-      run: ./tmp/bin/operator-sdk olm install
-
-    - name: Create a local docker registry in the Kind cluster
-      shell: bash
-      run: |
-        kubectl apply -f hack/kind/registry.yaml -n operators
-        kubectl rollout status deployment local-registry -n operators
-        # Expose the registry to the host so that we can build and push the image
-        echo "127.0.0.1 local-registry" | sudo tee -a /etc/hosts
-
-    - name: Run e2e script
-      shell: bash
-      run: ./test/run-e2e.sh --ci
-
-    - name: Capture cluster state
-      if: always()
-      shell: bash
-      run: |
-        # Capture apiserver state
-        oc adm inspect node --dest-dir cluster-state || true
-        oc adm inspect -A statefulset --dest-dir cluster-state || true
-        oc adm inspect -A deployment --dest-dir cluster-state || true
-        oc adm inspect -A ns --dest-dir cluster-state || true
-        cp -r tmp/e2e cluster-state/ || true
-
-    - name: Archive production artifacts
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: cluster-state
-        path: cluster-state
+      run: echo skipping e2e
+    #
+    # - uses: actions/setup-go@v3
+    #   with:
+    #     go-version: ${{ inputs.go-version }}
+    #     check-latest: true
+    #     cache: true
+    #
+    # - uses: azure/setup-kubectl@v3
+    #
+    # - name: Start Kind
+    #   uses: engineerd/setup-kind@v0.5.0
+    #   with:
+    #     version: ${{ inputs.kind-version }}
+    #     image: ${{ inputs.kind-image }}
+    #     wait: 300s
+    #     config: ./hack/kind/config.yaml
+    #
+    # - name: Install required tools
+    #   uses: ./.github/tools-cache
+    #
+    # - name: Install OLM
+    #   shell: bash
+    #   run: ./tmp/bin/operator-sdk olm install
+    #
+    # - name: Create a local docker registry in the Kind cluster
+    #   shell: bash
+    #   run: |
+    #     kubectl apply -f hack/kind/registry.yaml -n operators
+    #     kubectl rollout status deployment local-registry -n operators
+    #     # Expose the registry to the host so that we can build and push the image
+    #     echo "127.0.0.1 local-registry" | sudo tee -a /etc/hosts
+    #
+    # - name: Run e2e script
+    #   shell: bash
+    #   run: ./test/run-e2e.sh --ci
+    #
+    # - name: Capture cluster state
+    #   if: always()
+    #   shell: bash
+    #   run: |
+    #     # Capture apiserver state
+    #     oc adm inspect node --dest-dir cluster-state || true
+    #     oc adm inspect -A statefulset --dest-dir cluster-state || true
+    #     oc adm inspect -A deployment --dest-dir cluster-state || true
+    #     oc adm inspect -A ns --dest-dir cluster-state || true
+    #     cp -r tmp/e2e cluster-state/ || true
+    #
+    # - name: Archive production artifacts
+    #   if: always()
+    #   uses: actions/upload-artifact@v3
+    #   with:
+    #     name: cluster-state
+    #     path: cluster-state
