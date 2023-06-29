@@ -31,8 +31,6 @@ runs:
       password: ${{ inputs.quay_token }}
 
   - uses: actions/checkout@v3
-    with:
-      fetch-depth: 0
 
   - name: Create new integration branch
     shell: bash
@@ -52,7 +50,7 @@ runs:
       # make initiate-release conflicts with the previous bundle created for
       # development branch, so the version in main takes precedence over the
       # one in olm-catalog branch
-      git merge -Xours origin/olm-catalog  -m "ci: merge olm-catalog branch"
+      git merge --allow-unrelated-histories -Xours origin/olm-catalog  -m "ci: merge olm-catalog branch"
 
   - name: Build Operator Image
     shell: bash
